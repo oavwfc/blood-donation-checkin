@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>捐血報名 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+    <div class="subtitle">捐血報名</div>
+  </header>
+
+  <main class="container">
+
+    <a href="index.html" class="back-link">‹ 返回首頁</a>
+
+    <div class="card">
+      <div class="card-title">
+        <span>📝</span> 報名填寫
+      </div>
+
+      <p style="font-size:0.88rem; color:#757575; margin-bottom:18px;">
+        請填寫以下資料完成報名，現場報到時需核對姓名與身分證後4碼。
+      </p>
+
+      <form id="registerForm" novalidate>
+
+        <div class="form-group">
+          <label for="company">公司行號 <span class="required">*</span></label>
+          <select id="company" class="form-control" onchange="toggleOther('company', 'company-other')">
+            <option value="">請選擇</option>
+            <option value="仕興員工／仕興員工親友">仕興員工／仕興員工親友</option>
+            <option value="董事長親友/獅子會">董事長親友/獅子會</option>
+            <option value="總經理(青商會/台灣應達)">總經理(青商會/台灣應達)</option>
+            <option value="銀行">銀行</option>
+            <option value="貿易商/報關行總務/教友">貿易商/報關行總務/教友</option>
+            <option value="供應廠商">供應廠商</option>
+            <option value="週邊學校警義消">週邊學校警義消</option>
+            <option value="CCK聯誼廠商">CCK聯誼廠商</option>
+            <option value="其他">其他</option>
+          </select>
+          <div class="error-msg" id="err-company">請選擇公司行號</div>
+          <input type="text" id="company-other" class="form-control"
+                 placeholder="請說明來源（如：LINE社群、FB社團等）"
+                 maxlength="50" style="display:none; margin-top:8px;">
+          <div class="error-msg" id="err-company-other">請填寫說明</div>
+        </div>
+
+        <div class="form-group">
+          <label for="name">姓名 <span class="required">*</span></label>
+          <input type="text" id="name" class="form-control"
+                 placeholder="請輸入真實姓名" maxlength="20">
+          <div class="error-msg" id="err-name">請輸入姓名</div>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">手機電話 <span class="required">*</span></label>
+          <input type="tel" id="phone" class="form-control"
+                 placeholder="例：0912345678" maxlength="10"
+                 inputmode="numeric"
+                 oninput="this.value=this.value.replace(/\D/g,'')">
+          <div class="error-msg" id="err-phone">請輸入10碼手機號碼</div>
+        </div>
+
+        <div class="form-group">
+          <label for="ccAmount">捐血CC數 <span class="required">*</span></label>
+          <select id="ccAmount" class="form-control">
+            <option value="">請選擇捐血量</option>
+            <option value="250cc">250cc</option>
+            <option value="500cc">500cc</option>
+          </select>
+          <div class="error-msg" id="err-cc">請選擇捐血CC數</div>
+        </div>
+
+        <div id="loadingBox" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>送出中，請稍候...</span>
+        </div>
+
+        <div id="resultBox" class="result-box"></div>
+
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          確認送出報名
+        </button>
+
+
+      </form>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    const form       = document.getElementById('registerForm');
+    const loadingBox = document.getElementById('loadingBox');
+    const resultBox  = document.getElementById('resultBox');
+    const submitBtn  = document.getElementById('submitBtn');
+
+    function showError(id, show) {
+      const el = document.getElementById('err-' + id);
+      if (el) el.classList.toggle('show', show);
+    }
+
+    function toggleOther(selectId, otherId) {
+      const isOther = document.getElementById(selectId).value === '其他';
+      document.getElementById(otherId).style.display = isOther ? 'block' : 'none';
+    }
+
+    function getCompanyValue() {
+      const sel = document.getElementById('company').value;
+      return sel === '其他' ? document.getElementById('company-other').value.trim() : sel;
+    }
+
+    function validate() {
+      let valid = true;
+
+      const companySelect = document.getElementById('company').value;
+      const companyOther  = document.getElementById('company-other').value.trim();
+      const name    = document.getElementById('name').value.trim();
+      const phone   = document.getElementById('phone').value.trim();
+      const cc      = document.getElementById('ccAmount').value;
+
+      showError('company', !companySelect);  if (!companySelect) valid = false;
+      if (companySelect === '其他') {
+        showError('company-other', !companyOther); if (!companyOther) valid = false;
+      }
+      showError('name',    !name);        if (!name)    valid = false;
+      showError('phone',   !/^09\d{8}$/.test(phone)); if (!/^09\d{8}$/.test(phone)) valid = false;
+      showError('cc',      !cc);          if (!cc)      valid = false;
+
+      return valid;
+    }
+
+    function showResult(type, title, detail) {
+      resultBox.className = 'result-box ' + type;
+      const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
+      resultBox.innerHTML = `
+        <div class="result-title">${icon} ${title}</div>
+        <div class="result-detail">${detail}</div>
+      `;
+    }
+
+    function resetForm() {
+      form.reset();
+      resultBox.className = 'result-box';
+      resultBox.innerHTML = '';
+      document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('show'));
+    }
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (!validate()) return;
+
+      submitBtn.disabled = true;
+      loadingBox.style.display = 'flex';
+      resultBox.className = 'result-box';
+      resultBox.innerHTML = '';
+
+      const payload = {
+        action:    'register',
+        公司行號:   getCompanyValue(),
+        姓名:       document.getElementById('name').value.trim(),
+        電話:       document.getElementById('phone').value.trim(),
+        捐血CC數:   document.getElementById('ccAmount').value,
+      };
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          window.location.href = `success.html?type=register&name=${encodeURIComponent(payload.姓名)}`;
+        } else if (data.status === 'duplicate') {
+          showResult('warning', '重複報名', data.message);
+        } else {
+          showResult('error', '送出失敗', data.message || '請稍後再試');
+        }
+      } catch (err) {
+        showResult('error', '連線錯誤', '無法連接伺服器，請確認網路後再試。');
+      } finally {
+        loadingBox.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

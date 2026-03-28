@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者登入 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+    <div class="subtitle">管理者登入</div>
+  </header>
+
+  <main class="container">
+
+    <div class="card">
+      <div class="card-title">
+        <span>🔐</span> 管理者驗證
+      </div>
+
+      <p style="font-size:0.88rem; color:#757575; margin-bottom:20px;">
+        此頁面僅供活動管理人員使用，請輸入管理者密碼。
+      </p>
+
+      <form id="loginForm" novalidate>
+
+        <div class="form-group">
+          <label for="password">管理者密碼 <span class="required">*</span></label>
+          <input type="password" id="password" class="form-control"
+                 placeholder="請輸入密碼" autocomplete="current-password">
+          <div class="error-msg" id="err-password">請輸入密碼</div>
+        </div>
+
+        <div id="loadingBox" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>驗證中，請稍候...</span>
+        </div>
+
+        <div id="loginResult" class="result-box"></div>
+
+        <button type="submit" class="btn btn-primary" id="loginBtn" style="margin-top:8px;">
+          登入
+        </button>
+
+      </form>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    // 若已登入則直接跳轉
+    if (sessionStorage.getItem('ADMIN_TOKEN')) {
+      window.location.replace('admin-gift.html');
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const password = document.getElementById('password').value;
+      const errEl    = document.getElementById('err-password');
+
+      if (!password) {
+        errEl.classList.add('show');
+        return;
+      }
+      errEl.classList.remove('show');
+
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      document.getElementById('loadingBox').style.display = 'flex';
+      document.getElementById('loginResult').className = 'result-box';
+      document.getElementById('loginResult').innerHTML  = '';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'admin_login', password: password }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          sessionStorage.setItem('ADMIN_TOKEN', data.token);
+          window.location.replace('admin-gift.html');
+        } else {
+          const box = document.getElementById('loginResult');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 登入失敗</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('loginResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('loadingBox').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

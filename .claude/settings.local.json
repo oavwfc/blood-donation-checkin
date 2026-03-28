@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv register.html sign-up.html)",
+      "Bash(mv checkin.html check-in.html)",
+      "Bash(mv donation.html post-donation.html)",
+      "Bash(gh api:*)"
+    ]
+  }
+}

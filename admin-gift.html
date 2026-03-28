@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>禮品領取管理 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* 查詢結果表格 */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .info-table tr {
+      border-bottom: 1px solid var(--gray-300);
+    }
+    .info-table tr:last-child {
+      border-bottom: none;
+    }
+    .info-table td {
+      padding: 10px 6px;
+      vertical-align: middle;
+    }
+    .info-table td:first-child {
+      color: var(--gray-600);
+      font-size: 0.85rem;
+      font-weight: 600;
+      width: 82px;
+      white-space: nowrap;
+    }
+    .info-table td:last-child {
+      font-weight: 700;
+      color: var(--gray-900);
+      word-break: break-all;
+    }
+    .info-table .badge-y {
+      display: inline-block;
+      background: var(--green-light);
+      color: var(--green);
+      border: 1px solid #A5D6A7;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .info-table .badge-n {
+      display: inline-block;
+      background: var(--red-light);
+      color: var(--red);
+      border: 1px solid #EF9A9A;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    /* 管理員 header 登出按鈕 */
+    .admin-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .btn-logout {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.6);
+      color: #fff;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.15); }
+
+    /* Y/N 禮品按鈕 (覆蓋既有 yn-btn，加大字說明) */
+    .gift-yn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .gift-yn-btn {
+      flex: 1;
+      padding: 18px 10px;
+      border: 2.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      background: var(--white);
+      color: var(--gray-600);
+      transition: all 0.15s;
+      line-height: 1.5;
+      text-align: center;
+    }
+    .gift-yn-btn .gift-label {
+      display: block;
+      font-size: 1.3rem;
+    }
+    .gift-yn-btn .gift-sub {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .gift-yn-btn:hover { border-color: var(--gray-600); }
+    .gift-yn-btn.selected-y {
+      background: var(--green);
+      border-color: var(--green);
+      color: var(--white);
+      box-shadow: 0 2px 8px rgba(46,125,50,0.35);
+    }
+    .gift-yn-btn.selected-n {
+      background: #E65100;
+      border-color: #E65100;
+      color: var(--white);
+      box-shadow: 0 2px 8px rgba(230,81,0,0.35);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="admin-header-bar">
+      <h1 style="font-size:1.1rem; font-weight:700; letter-spacing:0.05em;">🩸 捐血報到系統</h1>
+      <button class="btn-logout" onclick="logout()">登出</button>
+    </div>
+    <div class="subtitle">禮品領取管理</div>
+  </header>
+
+  <main class="container">
+
+    <!-- 搜尋卡片 -->
+    <div class="card" id="searchCard">
+      <div class="card-title">
+        <span>🔍</span> 查詢民眾資料
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tabPhone" onclick="switchTab('phone')">手機電話</button>
+        <button class="tab-btn"        id="tabNumber" onclick="switchTab('number')">報到編號</button>
+      </div>
+
+      <!-- Tab: 手機電話 -->
+      <div class="tab-panel active" id="panelPhone">
+        <form id="phoneForm" novalidate>
+          <div class="form-group">
+            <label for="s-phone">手機號碼 <span class="required">*</span></label>
+            <input type="tel" id="s-phone" class="form-control"
+                   placeholder="例：0912345678" maxlength="10"
+                   inputmode="numeric"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+            <div class="error-msg" id="err-s-phone">請輸入 10 碼手機號碼（09xxxxxxxx）</div>
+          </div>
+          <button type="submit" class="btn btn-primary">查詢</button>
+        </form>
+      </div>
+
+      <!-- Tab: 報到編號 -->
+      <div class="tab-panel" id="panelNumber">
+        <form id="numberForm" novalidate>
+          <div class="form-group">
+            <label for="s-number">報到編號 <span class="required">*</span></label>
+            <input type="text" id="s-number" class="form-control"
+                   placeholder="例：0001" maxlength="4"
+                   inputmode="numeric"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+            <div class="error-msg" id="err-s-number">請輸入報到編號</div>
+          </div>
+          <button type="submit" class="btn btn-primary">查詢</button>
+        </form>
+      </div>
+
+      <div id="searchLoading" class="loading" style="display:none; margin-top:12px;">
+        <div class="spinner"></div>
+        <span>查詢中，請稍候...</span>
+      </div>
+
+      <div id="searchError" class="result-box" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- 查詢結果 + 禮品操作卡片（初始隱藏） -->
+    <div class="card" id="resultCard" style="display:none;">
+
+      <div class="card-title">
+        <span>📋</span> 查詢結果
+      </div>
+
+      <!-- 9 欄位表格 -->
+      <table class="info-table" id="infoTable"></table>
+
+      <hr style="margin: 20px 0; border:none; border-top:1.5px solid var(--gray-300);">
+
+      <!-- 禮品領取選擇 -->
+      <div class="form-group" style="margin-bottom:20px;">
+        <label style="font-size:0.92rem; font-weight:700; color:var(--gray-900); display:block; margin-bottom:10px;">
+          禮品領取
+        </label>
+        <div class="gift-yn-group">
+          <button type="button" class="gift-yn-btn" id="btnY" onclick="selectGift('Y')">
+            <span class="gift-label">✅ Y</span>
+            <span class="gift-sub">已領取</span>
+          </button>
+          <button type="button" class="gift-yn-btn" id="btnN" onclick="selectGift('N')">
+            <span class="gift-label">📦 N</span>
+            <span class="gift-sub">之後補發</span>
+          </button>
+        </div>
+        <div class="error-msg" id="err-gift" style="margin-top:8px;">請選擇禮品領取狀態</div>
+      </div>
+
+      <div id="submitLoading" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <span>更新中，請稍候...</span>
+      </div>
+
+      <div id="submitResult" class="result-box"></div>
+
+      <button type="button" class="btn btn-primary" id="confirmBtn"
+              onclick="submitGift()" style="margin-top:8px;">
+        確認送出
+      </button>
+
+      <button type="button" class="btn btn-outline" onclick="backToSearch()">
+        返回查詢
+      </button>
+
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    // ── 驗證登入狀態 ──
+    const token = sessionStorage.getItem('ADMIN_TOKEN');
+    if (!token) {
+      window.location.replace('admin-login.html');
+    }
+
+    let currentCheckinNumber = null; // 暫存目前查詢的報到編號
+    let selectedGift = null;         // 'Y' or 'N'
+
+    // ── 登出 ──
+    function logout() {
+      sessionStorage.removeItem('ADMIN_TOKEN');
+      window.location.replace('admin-login.html');
+    }
+
+    // ── Tab 切換 ──
+    function switchTab(tab) {
+      document.getElementById('tabPhone').classList.toggle('active',  tab === 'phone');
+      document.getElementById('tabNumber').classList.toggle('active', tab === 'number');
+      document.getElementById('panelPhone').classList.toggle('active',  tab === 'phone');
+      document.getElementById('panelNumber').classList.toggle('active', tab === 'number');
+      clearSearchError();
+    }
+
+    function clearSearchError() {
+      const box = document.getElementById('searchError');
+      box.className = 'result-box';
+      box.innerHTML  = '';
+    }
+
+    // ── 手機電話查詢 ──
+    document.getElementById('phoneForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const phone = document.getElementById('s-phone').value.trim();
+      const errEl = document.getElementById('err-s-phone');
+      if (!/^09\d{8}$/.test(phone)) { errEl.classList.add('show'); return; }
+      errEl.classList.remove('show');
+      await doLookup({ action: 'admin_lookup', token: token, 電話: phone });
+    });
+
+    // ── 報到編號查詢 ──
+    document.getElementById('numberForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const num   = document.getElementById('s-number').value.trim();
+      const errEl = document.getElementById('err-s-number');
+      if (!num) { errEl.classList.add('show'); return; }
+      errEl.classList.remove('show');
+      await doLookup({ action: 'admin_lookup', token: token, 報到編號: num });
+    });
+
+    // ── 共用查詢邏輯 ──
+    async function doLookup(payload) {
+      clearSearchError();
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('searchLoading').style.display = 'flex';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('admin-login.html');
+          return;
+        }
+
+        if (data.status === 'success') {
+          showResult(data);
+        } else {
+          const box = document.getElementById('searchError');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 查無資料</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('searchError');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('searchLoading').style.display = 'none';
+      }
+    }
+
+    // ── 顯示查詢結果 ──
+    function showResult(data) {
+      currentCheckinNumber = data.報到編號;
+      selectedGift = null;
+
+      // 重置禮品按鈕與提示
+      document.getElementById('btnY').className = 'gift-yn-btn';
+      document.getElementById('btnN').className = 'gift-yn-btn';
+      document.getElementById('err-gift').classList.remove('show');
+      document.getElementById('submitResult').className = 'result-box';
+      document.getElementById('submitResult').innerHTML  = '';
+      document.getElementById('confirmBtn').disabled = false;
+
+      // 產生表格
+      const fields = [
+        { label: '報名時間', value: formatDateOnly(data.報名時間) },
+        { label: '公司行號', value: data.公司行號 || '—' },
+        { label: '姓名',     value: data.姓名     || '—' },
+        { label: '電話',     value: data.電話     || '—' },
+        { label: '捐血CC數', value: data.捐血CC數 || '—' },
+        { label: '報到時間', value: formatDateOnly(data.報到時間) },
+        { label: '報到編號', value: data.報到編號 ? String(data.報到編號).padStart(4,'0') : '—' },
+        { label: '報到',     value: data.報到,    badge: true },
+        { label: '捐血成功', value: data.捐血成功, badge: true },
+      ];
+
+      const rows = fields.map(function(f) {
+        let valHtml;
+        if (f.badge) {
+          if (f.value === 'Y') {
+            valHtml = '<span class="badge-y">Y 是</span>';
+          } else if (f.value === 'N') {
+            valHtml = '<span class="badge-n">N 否</span>';
+          } else {
+            valHtml = f.value || '—';
+          }
+        } else {
+          valHtml = escHtml(String(f.value));
+        }
+        return `<tr><td>${f.label}</td><td>${valHtml}</td></tr>`;
+      }).join('');
+
+      document.getElementById('infoTable').innerHTML = rows;
+      document.getElementById('resultCard').style.display = 'block';
+      document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ── 選擇禮品 Y/N ──
+    function selectGift(val) {
+      selectedGift = val;
+      document.getElementById('btnY').className = 'gift-yn-btn' + (val === 'Y' ? ' selected-y' : '');
+      document.getElementById('btnN').className = 'gift-yn-btn' + (val === 'N' ? ' selected-n' : '');
+      document.getElementById('err-gift').classList.remove('show');
+    }
+
+    // ── 確認送出 ──
+    async function submitGift() {
+      if (!selectedGift) {
+        document.getElementById('err-gift').classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = true;
+      document.getElementById('submitLoading').style.display = 'flex';
+      document.getElementById('submitResult').className = 'result-box';
+      document.getElementById('submitResult').innerHTML  = '';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action:   'update_gift',
+            token:    token,
+            報到編號: currentCheckinNumber,
+            禮品領取: selectedGift,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('admin-login.html');
+          return;
+        }
+
+        const box = document.getElementById('submitResult');
+        if (data.status === 'success') {
+          const label = selectedGift === 'Y' ? '✅ 已領取' : '📦 之後補發';
+          box.className = 'result-box success';
+          box.innerHTML = `<div class="result-title">✅ 更新成功</div><div class="result-detail">禮品領取已記錄為：<strong>${label}</strong></div>`;
+        } else {
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${data.message}</div>`;
+          btn.disabled = false;
+        }
+      } catch (err) {
+        const box = document.getElementById('submitResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+        btn.disabled = false;
+      } finally {
+        document.getElementById('submitLoading').style.display = 'none';
+      }
+    }
+
+    // ── 返回查詢 ──
+    function backToSearch() {
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('s-phone').value  = '';
+      document.getElementById('s-number').value = '';
+      clearSearchError();
+      currentCheckinNumber = null;
+      selectedGift = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── 日期格式化（ISO → yyyy-mm-dd，台灣時區） ──
+    function formatDateOnly(val) {
+      if (!val || val === '—') return '—';
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return escHtml(String(val));
+      return d.toLocaleDateString('sv', { timeZone: 'Asia/Taipei' }); // 'sv' locale = yyyy-mm-dd
+    }
+
+    // ── HTML 跳脫（防 XSS） ──
+    function escHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

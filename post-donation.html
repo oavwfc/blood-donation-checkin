@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>捐血後填寫 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .show-staff-box {
+      background: #FFD600;
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .show-staff-box .staff-msg {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #5D4000;
+      line-height: 1.5;
+    }
+    .thank-you-box {
+      background: #E8F5E9;
+      border: 2px solid #A5D6A7;
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .thank-you-box .ty-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+    .thank-you-box .ty-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 10px;
+    }
+    .thank-you-box .ty-msg {
+      font-size: 1rem;
+      color: #2E7D32;
+      line-height: 1.8;
+    }
+    .result-summary {
+      background: #F5F5F5;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      line-height: 2;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+    <div class="subtitle">捐血後填寫</div>
+  </header>
+
+  <main class="container">
+
+    <a href="index.html" class="back-link" id="backLink">‹ 返回首頁</a>
+
+    <!-- Step 1：查詢 -->
+    <div class="card" id="step1Card">
+      <div class="card-title">
+        <span>🔍</span> 查詢資料
+      </div>
+
+      <p style="font-size:0.88rem; color:#757575; margin-bottom:16px;">
+        請輸入手機號碼或報到序號（擇一）查詢。
+      </p>
+
+      <!-- 查詢方式切換 -->
+      <div class="tabs" id="queryTypeTabs">
+        <button class="tab-btn active" onclick="switchQueryType('phone', this)">手機號碼</button>
+        <button class="tab-btn"        onclick="switchQueryType('number', this)">報到序號</button>
+      </div>
+
+      <form id="queryForm" novalidate>
+
+        <!-- 手機號碼輸入 -->
+        <div id="phoneGroup" class="form-group">
+          <label for="q-phone">手機號碼</label>
+          <input type="tel" id="q-phone" class="form-control"
+                 placeholder="例：0912345678" maxlength="10"
+                 inputmode="numeric"
+                 oninput="this.value=this.value.replace(/\D/g,'')">
+          <div class="error-msg" id="err-q-phone">請輸入10碼手機號碼（09xxxxxxxx）</div>
+        </div>
+
+        <!-- 報到序號輸入 -->
+        <div id="numberGroup" class="form-group" style="display:none;">
+          <label for="q-number">報到序號</label>
+          <input type="text" id="q-number" class="form-control"
+                 placeholder="例：0001" maxlength="4"
+                 inputmode="numeric" pattern="\d{1,4}"
+                 style="font-size:1.5rem; text-align:center; letter-spacing:0.2em; font-weight:700;">
+          <div class="error-msg" id="err-q-number">請輸入1～4位報到序號</div>
+        </div>
+
+        <div id="queryLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>查詢中，請稍候...</span>
+        </div>
+
+        <div id="queryResult" class="result-box"></div>
+
+        <button type="submit" class="btn btn-primary" id="queryBtn">
+          查詢
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Step 2：填寫捐血結果（捐血成功為空白時顯示） -->
+    <div class="card" id="step2Card" style="display:none;">
+      <div class="card-title">
+        <span>🩸</span> 填寫捐血結果
+      </div>
+
+      <div id="personInfo" class="result-summary"></div>
+
+      <form id="donationForm" novalidate>
+
+        <div class="form-group">
+          <label>您是否有成功捐血（請點選下方按鈕） <span class="required">*</span></label>
+          <div class="yn-group">
+            <button type="button" class="yn-btn" id="btn-success-y"
+                    onclick="selectSuccess('Y')">
+              ✓ 成功
+            </button>
+            <button type="button" class="yn-btn" id="btn-success-n"
+                    onclick="selectSuccess('N')">
+              ✗ 未成功
+            </button>
+          </div>
+          <div class="error-msg" id="err-success">請選擇捐血結果</div>
+        </div>
+
+        <div id="submitLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>更新中，請稍候...</span>
+        </div>
+
+        <div id="submitResult" class="result-box"></div>
+
+        <button type="submit" class="btn btn-green" id="submitBtn">
+          下一步
+        </button>
+
+        <button type="button" class="btn btn-outline" onclick="resetAll()">
+          重新查詢
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Step 3Y：出示給工作人員（捐血成功 Y） -->
+    <div class="card" id="step3YCard" style="display:none;">
+      <div class="show-staff-box">
+        <div style="font-size:2rem; margin-bottom:8px;">📋</div>
+        <div class="staff-msg">請將此畫面出示給工作人員，領取捐血禮品</div>
+      </div>
+
+      <div id="finalInfoY" class="result-summary"></div>
+
+      <a href="index.html" class="btn btn-outline" style="display:block; text-align:center; text-decoration:none; padding:14px; border-radius:8px; border:2px solid #C62828; color:#C62828; font-weight:700;">
+        返回首頁
+      </a>
+    </div>
+
+    <!-- Step 3N：感謝頁（捐血成功 N） -->
+    <div class="card" id="step3NCard" style="display:none;">
+      <div class="thank-you-box">
+        <div class="ty-icon">❤️</div>
+        <div class="ty-title">感謝您的愛心！</div>
+        <div class="ty-msg">
+          雖然這次未能成功捐血，<br>
+          您願意前來參與已是最大的支持。<br>
+          期待下次再與您相見，<br>
+          一起為需要的人盡一份心力！
+        </div>
+      </div>
+
+      <a href="index.html" class="btn btn-outline" style="display:block; text-align:center; text-decoration:none; padding:14px; border-radius:8px; border:2px solid #C62828; color:#C62828; font-weight:700;">
+        返回首頁
+      </a>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    let queryType         = 'phone'; // 'phone' | 'number'
+    let selectedSuccess   = '';
+    let currentCheckinNum = '';
+    let currentCompany    = '';
+    let currentPhone      = '';
+    let currentInfoHtml   = '';
+
+    // ── 切換查詢方式 ──
+    function switchQueryType(type, btn) {
+      queryType = type;
+      document.querySelectorAll('#queryTypeTabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('phoneGroup').style.display  = type === 'phone'  ? 'block' : 'none';
+      document.getElementById('numberGroup').style.display = type === 'number' ? 'block' : 'none';
+      document.getElementById('queryResult').className = 'result-box';
+      document.getElementById('queryResult').innerHTML = '';
+      document.getElementById('err-q-phone').classList.remove('show');
+      document.getElementById('err-q-number').classList.remove('show');
+    }
+
+    // ── 選擇捐血成功 ──
+    function selectSuccess(val) {
+      selectedSuccess = val;
+      document.getElementById('btn-success-y').className = 'yn-btn' + (val === 'Y' ? ' selected-y' : '');
+      document.getElementById('btn-success-n').className = 'yn-btn' + (val === 'N' ? ' selected-n' : '');
+      document.getElementById('err-success').classList.remove('show');
+    }
+
+    // ── 重置回 Step 1 ──
+    function resetAll() {
+      selectedSuccess   = '';
+      currentCheckinNum = '';
+      currentCompany    = '';
+      currentPhone      = '';
+      currentInfoHtml   = '';
+      document.getElementById('queryForm').reset();
+      document.getElementById('queryResult').className = 'result-box';
+      document.getElementById('queryResult').innerHTML = '';
+      document.getElementById('submitResult').className = 'result-box';
+      document.getElementById('submitResult').innerHTML = '';
+      document.querySelectorAll('.yn-btn').forEach(b => b.className = 'yn-btn');
+      document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('show'));
+      document.getElementById('step1Card').style.display  = 'block';
+      document.getElementById('step2Card').style.display  = 'none';
+      document.getElementById('step3YCard').style.display = 'none';
+      document.getElementById('step3NCard').style.display = 'none';
+      document.getElementById('backLink').style.display   = 'inline-flex';
+    }
+
+    // ── 顯示 Y 出示畫面 ──
+    function showStep3Y(infoHtml) {
+      document.getElementById('finalInfoY').innerHTML = infoHtml +
+        '<div><span style="color:#757575; font-size:0.85rem;">捐血成功</span><br><strong>✓ 成功</strong></div>';
+      document.getElementById('step3YCard').style.display = 'block';
+      document.getElementById('backLink').style.display   = 'none';
+    }
+
+    // ── 顯示 N 感謝畫面 ──
+    function showStep3N() {
+      document.getElementById('step3NCard').style.display = 'block';
+      document.getElementById('backLink').style.display   = 'none';
+    }
+
+    // ── Step 1：查詢 ──
+    document.getElementById('queryForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      let payload;
+
+      if (queryType === 'phone') {
+        const phone = document.getElementById('q-phone').value.trim();
+        if (!/^09\d{8}$/.test(phone)) {
+          document.getElementById('err-q-phone').classList.add('show');
+          return;
+        }
+        document.getElementById('err-q-phone').classList.remove('show');
+        payload = { action: 'lookup_phone', 電話: phone };
+
+      } else {
+        const num = document.getElementById('q-number').value.trim();
+        if (!num || !/^\d{1,4}$/.test(num)) {
+          document.getElementById('err-q-number').classList.add('show');
+          return;
+        }
+        document.getElementById('err-q-number').classList.remove('show');
+        payload = { action: 'lookup_checkin', 報到編號: num.padStart(4, '0') };
+      }
+
+      const btn = document.getElementById('queryBtn');
+      btn.disabled = true;
+      document.getElementById('queryLoading').style.display = 'flex';
+      document.getElementById('queryResult').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        const isFound = queryType === 'phone'
+          ? data.status === 'found'
+          : data.status === 'success';
+
+        if (isFound) {
+          if (queryType === 'phone') {
+            if (!data.報到編號) {
+              const box = document.getElementById('queryResult');
+              box.className = 'result-box warning';
+              box.innerHTML = '<div class="result-title">⚠️ 尚未完成報到</div><div class="result-detail">請先至「捐血前填寫」完成報到，取得報到序號後再回來填寫。</div>';
+              return;
+            }
+          }
+          currentCheckinNum = String(data.報到編號).padStart(4, '0');
+          currentCompany    = data.公司行號 || '';
+          currentPhone      = data.電話 || '';
+
+          currentInfoHtml = `
+            <div><span style="color:#757575; font-size:0.85rem;">報到序號</span><br>
+              <strong style="font-size:1.6rem; letter-spacing:0.15em; color:#C62828;">${currentCheckinNum}</strong>
+            </div>
+            <div><span style="color:#757575; font-size:0.85rem;">公司行號</span><br><strong>${currentCompany}</strong></div>
+            <div><span style="color:#757575; font-size:0.85rem;">姓名</span><br><strong>${data.姓名}</strong></div>
+            <div><span style="color:#757575; font-size:0.85rem;">手機電話</span><br><strong>${currentPhone}</strong></div>
+            <div><span style="color:#757575; font-size:0.85rem;">捐血CC數</span><br><strong>${data.捐血CC數}</strong></div>
+          `;
+
+          document.getElementById('step1Card').style.display = 'none';
+
+          if (data.捐血成功 === 'Y') {
+            // 已填 Y → 出示畫面
+            showStep3Y(currentInfoHtml);
+          } else if (data.捐血成功 === 'N') {
+            // 已填 N → 感謝畫面
+            showStep3N();
+          } else {
+            // 空白 → 讓使用者填寫
+            document.getElementById('personInfo').innerHTML = currentInfoHtml;
+            document.getElementById('step2Card').style.display = 'block';
+          }
+
+        } else {
+          const box = document.getElementById('queryResult');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 查無資料</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('queryResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('queryLoading').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+
+    // ── Step 2：送出捐血結果 ──
+    document.getElementById('donationForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      if (!selectedSuccess) {
+        document.getElementById('err-success').classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      document.getElementById('submitLoading').style.display = 'flex';
+      document.getElementById('submitResult').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action:   'update_donation',
+            報到編號:  currentCheckinNum,
+            捐血成功:  selectedSuccess,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          document.getElementById('step2Card').style.display = 'none';
+
+          if (selectedSuccess === 'Y') {
+            showStep3Y(currentInfoHtml);
+          } else {
+            showStep3N();
+          }
+        } else {
+          const box = document.getElementById('submitResult');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('submitResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('submitLoading').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

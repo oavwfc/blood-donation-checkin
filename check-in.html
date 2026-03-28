@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>現場報到 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+    <div class="subtitle">現場報到</div>
+  </header>
+
+  <main class="container">
+
+    <a href="index.html" class="back-link">‹ 返回首頁</a>
+
+    <div class="card">
+      <div class="card-title">
+        <span>✅</span> 現場報到
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('registered', this)">
+          已報名
+        </button>
+        <button class="tab-btn" onclick="switchTab('new', this)">
+          未報名（現場新增）
+        </button>
+      </div>
+
+      <!-- 已報名 Tab -->
+      <div id="tab-registered" class="tab-panel active">
+        <p style="font-size:0.88rem; color:#757575; margin-bottom:18px;">
+          請輸入報名時填寫的資料，系統將自動完成報到。
+        </p>
+
+        <form id="checkinForm" novalidate>
+
+          <div class="form-group">
+            <label for="c-name">姓名 <span class="required">*</span></label>
+            <input type="text" id="c-name" class="form-control"
+                   placeholder="請輸入姓名" maxlength="20">
+            <div class="error-msg" id="err-c-name">請輸入姓名</div>
+          </div>
+
+          <div class="form-group">
+            <label for="c-phone">手機電話 <span class="required">*</span></label>
+            <input type="tel" id="c-phone" class="form-control"
+                   placeholder="例：0912345678" maxlength="10"
+                   inputmode="numeric"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+            <div class="error-msg" id="err-c-phone">請輸入10碼手機號碼</div>
+          </div>
+
+          <div id="loadingBox1" class="loading" style="display:none;">
+            <div class="spinner"></div>
+            <span>查詢中，請稍候...</span>
+          </div>
+
+          <div id="resultBox1" class="result-box"></div>
+
+          <button type="submit" class="btn btn-orange" id="submitBtn1">
+            確認報到
+          </button>
+
+        </form>
+      </div>
+
+      <!-- 未報名 Tab -->
+      <div id="tab-new" class="tab-panel">
+        <p style="font-size:0.88rem; color:#757575; margin-bottom:18px;">
+          現場未事先報名，請填寫完整資料直接完成報到。
+        </p>
+
+        <form id="checkinNewForm" novalidate>
+
+          <div class="form-group">
+            <label for="n-company">公司行號 <span class="required">*</span></label>
+            <select id="n-company" class="form-control" onchange="toggleNOther()">
+              <option value="">請選擇</option>
+              <option value="仕興員工／仕興員工親友">仕興員工／仕興員工親友</option>
+              <option value="董事長親友/獅子會">董事長親友/獅子會</option>
+              <option value="總經理(青商會/台灣應達)">總經理(青商會/台灣應達)</option>
+              <option value="銀行">銀行</option>
+              <option value="貿易商/報關行總務/教友">貿易商/報關行總務/教友</option>
+              <option value="供應廠商">供應廠商</option>
+              <option value="週邊學校警義消">週邊學校警義消</option>
+              <option value="CCK聯誼廠商">CCK聯誼廠商</option>
+              <option value="其他">其他</option>
+            </select>
+            <div class="error-msg" id="err-n-company">請選擇公司行號</div>
+            <input type="text" id="n-company-other" class="form-control"
+                   placeholder="請說明來源（如：LINE社群、FB社團等）"
+                   maxlength="50" style="display:none; margin-top:8px;">
+            <div class="error-msg" id="err-n-company-other">請填寫說明</div>
+          </div>
+
+          <div class="form-group">
+            <label for="n-name">姓名 <span class="required">*</span></label>
+            <input type="text" id="n-name" class="form-control"
+                   placeholder="請輸入真實姓名" maxlength="20">
+            <div class="error-msg" id="err-n-name">請輸入姓名</div>
+          </div>
+
+          <div class="form-group">
+            <label for="n-phone">手機電話 <span class="required">*</span></label>
+            <input type="tel" id="n-phone" class="form-control"
+                   placeholder="例：0912345678" maxlength="10"
+                   inputmode="numeric"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+            <div class="error-msg" id="err-n-phone">請輸入10碼手機號碼</div>
+          </div>
+
+          <div class="form-group">
+            <label for="n-cc">捐血CC數 <span class="required">*</span></label>
+            <select id="n-cc" class="form-control">
+              <option value="">請選擇捐血量</option>
+              <option value="250cc">250cc</option>
+              <option value="500cc">500cc</option>
+            </select>
+            <div class="error-msg" id="err-n-cc">請選擇捐血CC數</div>
+          </div>
+
+          <div id="loadingBox2" class="loading" style="display:none;">
+            <div class="spinner"></div>
+            <span>送出中，請稍候...</span>
+          </div>
+
+          <div id="resultBox2" class="result-box"></div>
+
+          <button type="submit" class="btn btn-orange" id="submitBtn2">
+            確認報到
+          </button>
+
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    // ── 依 URL 參數自動切換 tab 並隱藏頁籤列 ──
+    (function() {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab === 'new') {
+        document.getElementById('tab-registered').classList.remove('active');
+        document.getElementById('tab-new').classList.add('active');
+        document.querySelectorAll('.tab-btn')[0].classList.remove('active');
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      }
+      // 從首頁進入時隱藏頁籤列
+      if (tab === 'registered' || tab === 'new') {
+        document.querySelector('.tabs').style.display = 'none';
+      }
+    })();
+
+    // ── Tab 切換 ──
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      btn.classList.add('active');
+      clearResults();
+    }
+
+    function clearResults() {
+      ['resultBox1', 'resultBox2'].forEach(id => {
+        const el = document.getElementById(id);
+        el.className = 'result-box';
+        el.innerHTML = '';
+      });
+      document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('show'));
+    }
+
+    function showErr(id, show) {
+      const el = document.getElementById('err-' + id);
+      if (el) el.classList.toggle('show', show);
+    }
+
+    function showResult(boxId, type, title, detail, checkinNum) {
+      const box = document.getElementById(boxId);
+      box.className = 'result-box ' + type;
+      const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
+      let numHtml = '';
+      if (checkinNum) {
+        numHtml = `
+          <div class="checkin-number">${checkinNum}</div>
+          <div class="checkin-label">請記住您的報到編號，捐血後需使用</div>
+        `;
+      }
+      box.innerHTML = `
+        <div class="result-title">${icon} ${title}</div>
+        <div class="result-detail">${detail}</div>
+        ${numHtml}
+      `;
+    }
+
+    // ── 已報名表單 ──
+    document.getElementById('checkinForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const name  = document.getElementById('c-name').value.trim();
+      const phone = document.getElementById('c-phone').value.trim();
+
+      let valid = true;
+      showErr('c-name',  !name);                          if (!name)  valid = false;
+      showErr('c-phone', !/^09\d{8}$/.test(phone));       if (!/^09\d{8}$/.test(phone)) valid = false;
+      if (!valid) return;
+
+      const btn = document.getElementById('submitBtn1');
+      btn.disabled = true;
+      document.getElementById('loadingBox1').style.display = 'flex';
+      document.getElementById('resultBox1').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'checkin',
+            姓名: name,
+            電話: phone,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === '  success' || data.status === 'success') {
+          window.location.href = `success.html?type=checkin&name=${encodeURIComponent(data.姓名)}&number=${data.報到編號}&cc=${encodeURIComponent(data.捐血CC數)}`;
+        } else if (data.status === 'already_checkin') {
+          showResult('resultBox1', 'warning', '已完成報到', data.message, data.報到編號);
+        } else {
+          showResult('resultBox1', 'error', '報到失敗', data.message);
+        }
+      } catch (err) {
+        showResult('resultBox1', 'error', '連線錯誤', '無法連接伺服器，請確認網路後再試。');
+      } finally {
+        document.getElementById('loadingBox1').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+
+    function toggleNOther() {
+      const isOther = document.getElementById('n-company').value === '其他';
+      document.getElementById('n-company-other').style.display = isOther ? 'block' : 'none';
+    }
+
+    function getNCompanyValue() {
+      const sel = document.getElementById('n-company').value;
+      return sel === '其他' ? document.getElementById('n-company-other').value.trim() : sel;
+    }
+
+    // ── 未報名表單 ──
+    document.getElementById('checkinNewForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const companySelect = document.getElementById('n-company').value;
+      const companyOther  = document.getElementById('n-company-other').value.trim();
+      const company = getNCompanyValue();
+      const name    = document.getElementById('n-name').value.trim();
+      const phone   = document.getElementById('n-phone').value.trim();
+      const cc      = document.getElementById('n-cc').value;
+
+      let valid = true;
+      showErr('n-company', !companySelect);  if (!companySelect) valid = false;
+      if (companySelect === '其他') {
+        showErr('n-company-other', !companyOther); if (!companyOther) valid = false;
+      }
+      showErr('n-name',    !name);           if (!name)    valid = false;
+      showErr('n-phone',   !/^09\d{8}$/.test(phone)); if (!/^09\d{8}$/.test(phone)) valid = false;
+      showErr('n-cc',      !cc);             if (!cc)      valid = false;
+      if (!valid) return;
+
+      const btn = document.getElementById('submitBtn2');
+      btn.disabled = true;
+      document.getElementById('loadingBox2').style.display = 'flex';
+      document.getElementById('resultBox2').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'checkin_new',
+            公司行號: company,
+            姓名: name,
+            電話: phone,
+            捐血CC數: cc,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          window.location.href = `success.html?type=checkin&name=${encodeURIComponent(data.姓名)}&number=${data.報到編號}&cc=${encodeURIComponent(data.捐血CC數)}`;
+        } else {
+          showResult('resultBox2', 'error', '報到失敗', data.message);
+        }
+      } catch (err) {
+        showResult('resultBox2', 'error', '連線錯誤', '無法連接伺服器，請確認網路後再試。');
+      } finally {
+        document.getElementById('loadingBox2').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

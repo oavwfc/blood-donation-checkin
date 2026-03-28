@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>捐血前填寫 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+    <div class="subtitle">捐血前填寫</div>
+  </header>
+
+  <main class="container">
+
+    <a href="index.html" class="back-link">‹ 返回首頁</a>
+
+    <!-- Step 1：輸入手機號碼查詢 -->
+    <div class="card" id="step1Card">
+      <div class="card-title">
+        <span>🔍</span> 輸入手機號碼
+      </div>
+
+      <p style="font-size:0.88rem; color:#757575; margin-bottom:18px;">
+        請先輸入您的手機號碼。若資料庫查詢不到您的資料，系統會自動跳轉到新增資料頁面。
+      </p>
+
+      <form id="phoneForm" novalidate>
+
+        <div class="form-group">
+          <label for="phone">手機號碼 <span class="required">*</span></label>
+          <input type="tel" id="phone" class="form-control"
+                 placeholder="例：0912345678" maxlength="10"
+                 inputmode="numeric"
+                 oninput="this.value=this.value.replace(/\D/g,'')">
+          <div class="error-msg" id="err-phone">請輸入10碼手機號碼（09xxxxxxxx）</div>
+        </div>
+
+        <div id="loadingBox" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>查詢中，請稍候...</span>
+        </div>
+
+        <div id="queryResult" class="result-box"></div>
+
+        <button type="submit" class="btn btn-primary" id="queryBtn">
+          查詢
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Step 2a：已報名 - 確認資料 -->
+    <div class="card" id="step2FoundCard" style="display:none;">
+      <div class="card-title">
+        <span>✅</span> 查詢結果
+      </div>
+
+      <p style="font-size:0.88rem; color:#2E7D32; background:#E8F5E9; padding:10px 12px; border-radius:8px; margin-bottom:18px;">
+        您已完成報名，請確認以下資料是否正確。
+      </p>
+
+      <div id="foundInfo" style="
+        background: #F5F5F5;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        line-height: 2;
+      "></div>
+
+      <div id="alreadyCheckinBox" class="result-box warning" style="display:none;"></div>
+
+      <div id="checkinLoading" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <span>報到中，請稍候...</span>
+      </div>
+
+      <div id="checkinResult" class="result-box"></div>
+
+      <button type="button" class="btn btn-orange" id="checkinBtn"
+              onclick="doCheckin()">
+        完成報到
+      </button>
+
+      <button type="button" class="btn btn-outline-blue" onclick="showEditCard()" id="editBtn">
+        修改資料
+      </button>
+
+      <button type="button" class="btn btn-outline" onclick="resetToStep1()">
+        返回重新查詢
+      </button>
+
+    </div>
+
+    <!-- Step 3：修改資料 -->
+    <div class="card" id="step3EditCard" style="display:none;">
+      <div class="card-title">
+        <span>✏️</span> 修改資料
+      </div>
+
+      <p style="font-size:0.88rem; color:#1565C0; background:#E3F2FD; padding:10px 12px; border-radius:8px; margin-bottom:18px;">
+        請修改需要更正的欄位，手機號碼不可變更。
+      </p>
+
+      <form id="editForm" novalidate>
+
+        <div class="form-group">
+          <label>手機號碼</label>
+          <input type="tel" id="e-phone" class="form-control" readonly
+                 style="background:#F5F5F5; color:#757575;">
+        </div>
+
+        <div class="form-group">
+          <label for="e-company">公司行號 <span class="required">*</span></label>
+          <select id="e-company" class="form-control" onchange="toggleEditOther()">
+            <option value="">請選擇</option>
+            <option value="仕興員工／仕興員工親友">仕興員工／仕興員工親友</option>
+            <option value="董事長親友/獅子會">董事長親友/獅子會</option>
+            <option value="總經理(青商會/台灣應達)">總經理(青商會/台灣應達)</option>
+            <option value="銀行">銀行</option>
+            <option value="貿易商/報關行總務/教友">貿易商/報關行總務/教友</option>
+            <option value="供應廠商">供應廠商</option>
+            <option value="週邊學校警義消">週邊學校警義消</option>
+            <option value="CCK聯誼廠商">CCK聯誼廠商</option>
+            <option value="其他">其他</option>
+          </select>
+          <div class="error-msg" id="err-e-company">請選擇公司行號</div>
+          <input type="text" id="e-company-other" class="form-control"
+                 placeholder="請說明來源（如：LINE社群、FB社團等）"
+                 maxlength="50" style="display:none; margin-top:8px;">
+          <div class="error-msg" id="err-e-company-other">請填寫說明</div>
+        </div>
+
+        <div class="form-group">
+          <label for="e-name">姓名 <span class="required">*</span></label>
+          <input type="text" id="e-name" class="form-control"
+                 placeholder="請輸入真實姓名" maxlength="20">
+          <div class="error-msg" id="err-e-name">請輸入姓名</div>
+        </div>
+
+        <div class="form-group">
+          <label for="e-cc">捐血CC數 <span class="required">*</span></label>
+          <select id="e-cc" class="form-control">
+            <option value="">請選擇捐血量</option>
+            <option value="250cc">250cc</option>
+            <option value="500cc">500cc</option>
+          </select>
+          <div class="error-msg" id="err-e-cc">請選擇捐血CC數</div>
+        </div>
+
+        <div id="editLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>更新中，請稍候...</span>
+        </div>
+
+        <div id="editResult" class="result-box"></div>
+
+        <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+          確認修改
+        </button>
+
+        <button type="button" class="btn btn-outline" onclick="cancelEdit()">
+          取消
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Step 2b：未報名 - 填寫資料 -->
+    <div class="card" id="step2NotFoundCard" style="display:none;">
+      <div class="card-title">
+        <span>📝</span> 填寫報名資料
+      </div>
+
+      <p style="font-size:0.88rem; color:#E65100; background:#FFF3E0; padding:10px 12px; border-radius:8px; margin-bottom:18px;">
+        查無報名資料，請填寫以下欄位完成報名。
+      </p>
+
+      <form id="registerForm" novalidate>
+
+        <div class="form-group">
+          <label for="r-phone">手機號碼</label>
+          <input type="tel" id="r-phone" class="form-control" readonly
+                 style="background:#F5F5F5; color:#757575;">
+        </div>
+
+        <div class="form-group">
+          <label for="r-company">公司行號 <span class="required">*</span></label>
+          <select id="r-company" class="form-control" onchange="toggleOther()">
+            <option value="">請選擇</option>
+            <option value="仕興員工／仕興員工親友">仕興員工／仕興員工親友</option>
+            <option value="董事長親友/獅子會">董事長親友/獅子會</option>
+            <option value="總經理(青商會/台灣應達)">總經理(青商會/台灣應達)</option>
+            <option value="銀行">銀行</option>
+            <option value="貿易商/報關行總務/教友">貿易商/報關行總務/教友</option>
+            <option value="供應廠商">供應廠商</option>
+            <option value="週邊學校警義消">週邊學校警義消</option>
+            <option value="CCK聯誼廠商">CCK聯誼廠商</option>
+            <option value="其他">其他</option>
+          </select>
+          <div class="error-msg" id="err-r-company">請選擇公司行號</div>
+          <input type="text" id="r-company-other" class="form-control"
+                 placeholder="請說明來源（如：LINE社群、FB社團等）"
+                 maxlength="50" style="display:none; margin-top:8px;">
+          <div class="error-msg" id="err-r-company-other">請填寫說明</div>
+        </div>
+
+        <div class="form-group">
+          <label for="r-name">姓名 <span class="required">*</span></label>
+          <input type="text" id="r-name" class="form-control"
+                 placeholder="請輸入真實姓名" maxlength="20">
+          <div class="error-msg" id="err-r-name">請輸入姓名</div>
+        </div>
+
+        <div class="form-group">
+          <label for="r-cc">捐血CC數 <span class="required">*</span></label>
+          <select id="r-cc" class="form-control">
+            <option value="">請選擇捐血量</option>
+            <option value="250cc">250cc</option>
+            <option value="500cc">500cc</option>
+          </select>
+          <div class="error-msg" id="err-r-cc">請選擇捐血CC數</div>
+        </div>
+
+        <div id="registerLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>送出中，請稍候...</span>
+        </div>
+
+        <div id="registerResult" class="result-box"></div>
+
+        <button type="button" class="btn btn-primary" id="registerOnlyBtn"
+                onclick="submitRegister(false)">
+          僅報名（尚未現場報到）
+        </button>
+
+        <button type="button" class="btn btn-orange" id="registerCheckinBtn"
+                onclick="submitRegister(true)">
+          報名並現場報到（取得序號）
+        </button>
+
+        <button type="button" class="btn btn-outline" onclick="resetToStep1()">
+          返回重新查詢
+        </button>
+
+      </form>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    let foundData = null; // 存放 lookup_phone 查詢結果
+
+    // ── 重置回 Step 1 ──
+    function resetToStep1() {
+      foundData = null;
+      document.getElementById('phone').value = '';
+      document.getElementById('queryResult').className = 'result-box';
+      document.getElementById('queryResult').innerHTML = '';
+      document.getElementById('step1Card').style.display = 'block';
+      document.getElementById('step2FoundCard').style.display = 'none';
+      document.getElementById('step2NotFoundCard').style.display = 'none';
+      document.getElementById('err-phone').classList.remove('show');
+    }
+
+    // ── 公司行號「其他」切換 ──
+    function toggleOther() {
+      const isOther = document.getElementById('r-company').value === '其他';
+      document.getElementById('r-company-other').style.display = isOther ? 'block' : 'none';
+    }
+
+    function getCompanyValue() {
+      const sel = document.getElementById('r-company').value;
+      return sel === '其他' ? document.getElementById('r-company-other').value.trim() : sel;
+    }
+
+    // ── Step 1：查詢手機號碼 ──
+    document.getElementById('phoneForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const phone = document.getElementById('phone').value.trim();
+      const errEl = document.getElementById('err-phone');
+
+      if (!/^09\d{8}$/.test(phone)) {
+        errEl.classList.add('show');
+        return;
+      }
+      errEl.classList.remove('show');
+
+      const btn = document.getElementById('queryBtn');
+      btn.disabled = true;
+      document.getElementById('loadingBox').style.display = 'flex';
+      document.getElementById('queryResult').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'lookup_phone', 電話: phone }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'found') {
+          foundData = data;
+          showFoundCard(data);
+        } else {
+          showNotFoundCard(phone);
+        }
+        document.getElementById('step1Card').style.display = 'none';
+
+      } catch (err) {
+        const box = document.getElementById('queryResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('loadingBox').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+
+    // ── 顯示已報名資料 ──
+    function showFoundCard(data) {
+      document.getElementById('foundInfo').innerHTML = `
+        <div><span style="color:#757575; font-size:0.85rem;">公司行號</span><br><strong>${data.公司行號}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">姓名</span><br><strong>${data.姓名}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">手機號碼</span><br><strong>${data.電話}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">捐血CC數</span><br><strong>${data.捐血CC數}</strong></div>
+      `;
+
+      if (data.報到 === 'Y') {
+        const box = document.getElementById('alreadyCheckinBox');
+        box.style.display = 'block';
+        box.innerHTML = `
+          <div class="result-title">⚠️ 您已完成報到</div>
+          <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${data.報到編號}</strong><br>請直接前往捐血。</div>
+        `;
+        document.getElementById('checkinBtn').style.display = 'none';
+      }
+
+      document.getElementById('step2FoundCard').style.display = 'block';
+    }
+
+    // ── 顯示未報名表單 ──
+    function showNotFoundCard(phone) {
+      document.getElementById('r-phone').value = phone;
+      document.getElementById('step2NotFoundCard').style.display = 'block';
+    }
+
+    // ── Step 2a：完成報到 ──
+    async function doCheckin() {
+      if (!foundData) return;
+
+      const btn = document.getElementById('checkinBtn');
+      btn.disabled = true;
+      document.getElementById('checkinLoading').style.display = 'flex';
+      document.getElementById('checkinResult').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'checkin',
+            姓名: foundData.姓名,
+            電話: foundData.電話,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          window.location.href = `success.html?type=checkin&name=${encodeURIComponent(data.姓名)}&number=${data.報到編號}&cc=${encodeURIComponent(data.捐血CC數)}`;
+        } else if (data.status === 'already_checkin') {
+          const box = document.getElementById('alreadyCheckinBox');
+          box.style.display = 'block';
+          box.innerHTML = `
+            <div class="result-title">⚠️ 您已完成報到</div>
+            <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${data.報到編號}</strong></div>
+          `;
+          btn.style.display = 'none';
+        } else {
+          const box = document.getElementById('checkinResult');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 報到失敗</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('checkinResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('checkinLoading').style.display = 'none';
+        btn.disabled = false;
+      }
+    }
+
+    // ── Step 2b：驗證表單 ──
+    function validateRegister() {
+      let valid = true;
+
+      const companySelect = document.getElementById('r-company').value;
+      const companyOther  = document.getElementById('r-company-other').value.trim();
+      const name          = document.getElementById('r-name').value.trim();
+      const cc            = document.getElementById('r-cc').value;
+
+      const show = (id, err) => {
+        document.getElementById('err-' + id).classList.toggle('show', err);
+        if (err) valid = false;
+      };
+
+      show('r-company', !companySelect);
+      if (companySelect === '其他') show('r-company-other', !companyOther);
+      show('r-name', !name);
+      show('r-cc', !cc);
+
+      return valid;
+    }
+
+    // ── Step 2b：送出報名（withCheckin = true 時同時報到） ──
+    async function submitRegister(withCheckin) {
+      if (!validateRegister()) return;
+
+      const phone   = document.getElementById('r-phone').value.trim();
+      const company = getCompanyValue();
+      const name    = document.getElementById('r-name').value.trim();
+      const cc      = document.getElementById('r-cc').value;
+
+      const btnOnly    = document.getElementById('registerOnlyBtn');
+      const btnCheckin = document.getElementById('registerCheckinBtn');
+      btnOnly.disabled    = true;
+      btnCheckin.disabled = true;
+      document.getElementById('registerLoading').style.display = 'flex';
+      document.getElementById('registerResult').className = 'result-box';
+
+      try {
+        if (withCheckin) {
+          // 直接呼叫 checkin_new（報名 + 報到一次完成）
+          const res  = await fetch(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'checkin_new',
+              公司行號: company,
+              姓名: name,
+              電話: phone,
+              捐血CC數: cc,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.status === 'success') {
+            window.location.href = `success.html?type=checkin&name=${encodeURIComponent(data.姓名)}&number=${data.報到編號}&cc=${encodeURIComponent(data.捐血CC數)}`;
+          } else {
+            showRegisterError(data.message || '請稍後再試');
+          }
+        } else {
+          // 僅報名
+          const res  = await fetch(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'register',
+              公司行號: company,
+              姓名: name,
+              電話: phone,
+              捐血CC數: cc,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.status === 'success') {
+            window.location.href = `success.html?type=register&name=${encodeURIComponent(name)}`;
+          } else if (data.status === 'duplicate') {
+            const box = document.getElementById('registerResult');
+            box.className = 'result-box warning';
+            box.innerHTML = `<div class="result-title">⚠️ 重複報名</div><div class="result-detail">${data.message}</div>`;
+          } else {
+            showRegisterError(data.message || '請稍後再試');
+          }
+        }
+      } catch (err) {
+        showRegisterError('無法連接伺服器，請確認網路後再試。');
+      } finally {
+        document.getElementById('registerLoading').style.display = 'none';
+        btnOnly.disabled    = false;
+        btnCheckin.disabled = false;
+      }
+    }
+
+    function showRegisterError(msg) {
+      const box = document.getElementById('registerResult');
+      box.className = 'result-box error';
+      box.innerHTML = `<div class="result-title">❌ 送出失敗</div><div class="result-detail">${msg}</div>`;
+    }
+
+    // ── Step 3：修改資料 ──
+
+    const KNOWN_COMPANIES = [
+      '仕興員工／仕興員工親友', '董事長親友/獅子會', '總經理(青商會/台灣應達)',
+      '銀行', '貿易商/報關行總務/教友', '供應廠商', '週邊學校警義消',
+      'CCK聯誼廠商', '其他'
+    ];
+
+    function showEditCard() {
+      if (!foundData) return;
+      document.getElementById('step2FoundCard').style.display = 'none';
+
+      // 預填目前資料
+      document.getElementById('e-phone').value = foundData.電話;
+      document.getElementById('e-name').value  = foundData.姓名;
+
+      const companyVal = foundData.公司行號 || '';
+      const sel = document.getElementById('e-company');
+      if (KNOWN_COMPANIES.includes(companyVal)) {
+        sel.value = companyVal;
+        document.getElementById('e-company-other').style.display = 'none';
+      } else {
+        sel.value = '其他';
+        document.getElementById('e-company-other').style.display = 'block';
+        document.getElementById('e-company-other').value = companyVal;
+      }
+
+      const ccSel = document.getElementById('e-cc');
+      ccSel.value = foundData.捐血CC數 || '';
+
+      document.getElementById('editResult').className = 'result-box';
+      document.getElementById('editResult').innerHTML = '';
+      document.getElementById('step3EditCard').style.display = 'block';
+    }
+
+    function cancelEdit() {
+      document.getElementById('step3EditCard').style.display = 'none';
+      document.getElementById('step2FoundCard').style.display = 'block';
+    }
+
+    function toggleEditOther() {
+      const isOther = document.getElementById('e-company').value === '其他';
+      document.getElementById('e-company-other').style.display = isOther ? 'block' : 'none';
+    }
+
+    function getEditCompanyValue() {
+      const sel = document.getElementById('e-company').value;
+      return sel === '其他' ? document.getElementById('e-company-other').value.trim() : sel;
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const companySelect = document.getElementById('e-company').value;
+      const companyOther  = document.getElementById('e-company-other').value.trim();
+      const company = getEditCompanyValue();
+      const name    = document.getElementById('e-name').value.trim();
+      const cc      = document.getElementById('e-cc').value;
+
+      let valid = true;
+      const showE = (id, err) => {
+        document.getElementById('err-' + id).classList.toggle('show', err);
+        if (err) valid = false;
+      };
+      showE('e-company', !companySelect);
+      if (companySelect === '其他') showE('e-company-other', !companyOther);
+      showE('e-name', !name);
+      showE('e-cc', !cc);
+      if (!valid) return;
+
+      const btn = document.getElementById('editSubmitBtn');
+      btn.disabled = true;
+      document.getElementById('editLoading').style.display = 'flex';
+      document.getElementById('editResult').className = 'result-box';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action:   'update_profile',
+            電話:     foundData.電話,
+            公司行號: company,
+            姓名:     name,
+            捐血CC數: cc,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          foundData = data; // 更新快取的資料
+          showFoundCard(data); // 刷新查詢結果卡片
+          document.getElementById('step3EditCard').style.display = 'none';
+          document.getElementById('step2FoundCard').style.display = 'block';
+
+          // 顯示修改成功提示
+          const box = document.getElementById('checkinResult');
+          box.className = 'result-box success';
+          box.innerHTML = '<div class="result-title">✅ 資料已更新</div><div class="result-detail">您的報名資料已成功修改。</div>';
+        } else {
+          const box = document.getElementById('editResult');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('editResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('editLoading').style.display = 'none';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

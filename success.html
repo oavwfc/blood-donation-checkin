@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完成 - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .success-page {
+      text-align: center;
+      padding: 32px 20px;
+    }
+    .success-icon {
+      font-size: 5rem;
+      margin-bottom: 16px;
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .success-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+    .success-msg {
+      font-size: 1rem;
+      color: var(--gray-600);
+      margin-bottom: 24px;
+      line-height: 1.8;
+    }
+    .checkin-number-box {
+      background: var(--green-light);
+      border: 2px solid #A5D6A7;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .checkin-number-box .label {
+      font-size: 0.9rem;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+    .checkin-number-box .number {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0.15em;
+    }
+    .checkin-number-box .note {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #5D4000;
+      background: #FFD600;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+    .home-btn {
+      display: inline-block;
+      padding: 10px 24px;
+      background: var(--red);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+    .home-btn:hover { background: var(--red-dark); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+  </header>
+
+  <main class="container">
+    <div class="card success-page" id="successContent">
+      <!-- 由 JS 動態填入 -->
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const type   = params.get('type');
+    const name   = params.get('name')   || '';
+    const number = params.get('number') || '';
+    const cc     = params.get('cc')     || '';
+
+    const el = document.getElementById('successContent');
+
+    if (type === 'register') {
+      el.innerHTML = `
+        <div class="success-icon">✅</div>
+        <div class="success-title">報名成功！</div>
+        <div class="success-msg">
+          ${name} 您好，報名已完成。<br>
+          活動當天請至現場輸入手機號碼完成報到。
+        </div>
+        <a href="index.html" class="home-btn">返回首頁</a>
+      `;
+    } else if (type === 'checkin') {
+      el.innerHTML = `
+        <div class="success-icon">🎉</div>
+        <div class="success-title">${name} 報到成功！</div>
+        <div class="success-msg">捐血CC數：${cc}</div>
+        <div class="checkin-number-box">
+          <div class="label">您的報到編號</div>
+          <div class="number">${number}</div>
+          <div class="note">📋 報到成功，請出示畫面給服務人員</div>
+        </div>
+        <a href="index.html" class="home-btn">返回首頁</a>
+      `;
+    } else if (type === 'donation') {
+      const successText = params.get('success') === 'Y' ? '✓ 成功' : '✗ 未成功';
+      const giftText    = params.get('gift')    === 'Y' ? '✓ 已領取' : '✗ 未領取';
+      el.innerHTML = `
+        <div class="success-icon">🏅</div>
+        <div class="success-title">資料更新成功！</div>
+        <div class="success-msg">
+          ${name} 的捐血資料已記錄完成。<br>
+          捐血成功：<strong>${successText}</strong><br>
+          禮品領取：<strong>${giftText}</strong>
+        </div>
+        <a href="index.html" class="home-btn">返回首頁</a>
+      `;
+    } else {
+      el.innerHTML = `
+        <div class="success-icon">✅</div>
+        <div class="success-title">操作完成！</div>
+        <a href="index.html" class="home-btn">返回首頁</a>
+      `;
+    }
+  </script>
+</body>
+</html>
