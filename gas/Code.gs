@@ -108,26 +108,34 @@ function register(data) {
   const sheet = getSheet();
   const rows  = sheet.getDataRange().getValues();
 
-  // 重複報名檢查 (姓名 + 電話)
+  // 重複報名檢查（只讀，不需鎖定）
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][2] === data.姓名 && String(rows[i][3]) === String(data.電話)) {
       return { status: 'duplicate', message: '此姓名與手機號碼已完成報名，無需重複報名。' };
     }
   }
 
-  const now    = formatDate(new Date());
-  const newRow = sheet.getLastRow() + 1;
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch (e) {
+    return { status: 'error', message: '系統繁忙，請稍後再試。' };
+  }
 
-  sheet.getRange(newRow, 1, 1, 10).setValues([[
-    now, data.公司行號, data.姓名, '',
-    data.捐血CC數, '', '', '', '', ''
-  ]]);
+  try {
+    const now    = formatDate(new Date());
+    const newRow = sheet.getLastRow() + 1;
 
-  var phoneCell = sheet.getRange(newRow, 4); // D 電話
-  phoneCell.setNumberFormat('@');
-  phoneCell.setValue(String(data.電話));
+    sheet.getRange(newRow, 4).setNumberFormat('@'); // 電話欄先設文字格式
+    sheet.getRange(newRow, 1, 1, 10).setValues([[
+      now, data.公司行號, data.姓名, String(data.電話),
+      data.捐血CC數, '', '', '', '', ''
+    ]]);
 
-  return { status: 'success', message: '報名成功！' };
+    return { status: 'success', message: '報名成功！' };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── 報到（已報名） ───────────────────────────
@@ -149,21 +157,32 @@ function checkin(data) {
         };
       }
 
-      const checkinNum = generateCheckinNumber(sheet);
-      const now        = formatDate(new Date());
-      const rowNum     = i + 1;
+      const lock = LockService.getScriptLock();
+      try {
+        lock.waitLock(15000);
+      } catch (e) {
+        return { status: 'error', message: '系統繁忙，請稍後再試。' };
+      }
 
-      sheet.getRange(rowNum, 6).setValue(now);                              // F 報到時間
-      sheet.getRange(rowNum, 7).setNumberFormat('@').setValue(checkinNum); // G 報到編號
-      sheet.getRange(rowNum, 8).setValue('Y');                             // H 報到
+      try {
+        const checkinNum = generateCheckinNumber(sheet);
+        const now        = formatDate(new Date());
+        const rowNum     = i + 1;
 
-      return {
-        status: 'success',
-        message: '報到成功！',
-        報到編號: checkinNum,
-        姓名: rows[i][2],
-        捐血CC數: rows[i][4]
-      };
+        sheet.getRange(rowNum, 6).setValue(now);                              // F 報到時間
+        sheet.getRange(rowNum, 7).setNumberFormat('@').setValue(checkinNum); // G 報到編號
+        sheet.getRange(rowNum, 8).setValue('Y');                             // H 報到
+
+        return {
+          status: 'success',
+          message: '報到成功！',
+          報到編號: checkinNum,
+          姓名: rows[i][2],
+          捐血CC數: rows[i][4]
+        };
+      } finally {
+        lock.releaseLock();
+      }
     }
   }
 
@@ -176,30 +195,36 @@ function checkin(data) {
 // ── 報到（未報名，現場直接新增） ─────────────
 
 function checkinNew(data) {
-  const sheet      = getSheet();
-  const now        = formatDate(new Date());
-  const checkinNum = generateCheckinNumber(sheet);
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch (e) {
+    return { status: 'error', message: '系統繁忙，請稍後再試。' };
+  }
 
-  const newRow = sheet.getLastRow() + 1;
+  try {
+    const sheet      = getSheet();
+    const now        = formatDate(new Date());
+    const checkinNum = generateCheckinNumber(sheet);
+    const newRow     = sheet.getLastRow() + 1;
 
-  sheet.getRange(newRow, 1, 1, 10).setValues([[
-    now, data.公司行號, data.姓名, '',
-    data.捐血CC數, now, '', 'Y', '', ''
-  ]]);
+    sheet.getRange(newRow, 4).setNumberFormat('@'); // 電話欄先設文字格式
+    sheet.getRange(newRow, 7).setNumberFormat('@'); // 報到編號欄先設文字格式
+    sheet.getRange(newRow, 1, 1, 10).setValues([[
+      now, data.公司行號, data.姓名, String(data.電話),
+      data.捐血CC數, now, checkinNum, 'Y', '', ''
+    ]]);
 
-  var phoneCell = sheet.getRange(newRow, 4); // D 電話
-  phoneCell.setNumberFormat('@');
-  phoneCell.setValue(String(data.電話));
-
-  sheet.getRange(newRow, 7).setNumberFormat('@').setValue(checkinNum); // G 報到編號
-
-  return {
-    status: 'success',
-    message: '報到成功！',
-    報到編號: checkinNum,
-    姓名: data.姓名,
-    捐血CC數: data.捐血CC數
-  };
+    return {
+      status: 'success',
+      message: '報到成功！',
+      報到編號: checkinNum,
+      姓名: data.姓名,
+      捐血CC數: data.捐血CC數
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── 查詢報到編號（只查不改） ──────────────────
