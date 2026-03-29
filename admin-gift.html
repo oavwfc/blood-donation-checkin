@@ -6,56 +6,6 @@
   <title>禮品領取管理 - 捐血報到系統</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    /* 查詢結果表格 */
-    .info-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-      margin-bottom: 4px;
-    }
-    .info-table tr {
-      border-bottom: 1px solid var(--gray-300);
-    }
-    .info-table tr:last-child {
-      border-bottom: none;
-    }
-    .info-table td {
-      padding: 10px 6px;
-      vertical-align: middle;
-    }
-    .info-table td:first-child {
-      color: var(--gray-600);
-      font-size: 0.85rem;
-      font-weight: 600;
-      width: 82px;
-      white-space: nowrap;
-    }
-    .info-table td:last-child {
-      font-weight: 700;
-      color: var(--gray-900);
-      word-break: break-all;
-    }
-    .info-table .badge-y {
-      display: inline-block;
-      background: var(--green-light);
-      color: var(--green);
-      border: 1px solid #A5D6A7;
-      border-radius: 99px;
-      padding: 2px 10px;
-      font-size: 0.82rem;
-      font-weight: 700;
-    }
-    .info-table .badge-n {
-      display: inline-block;
-      background: var(--red-light);
-      color: var(--red);
-      border: 1px solid #EF9A9A;
-      border-radius: 99px;
-      padding: 2px 10px;
-      font-size: 0.82rem;
-      font-weight: 700;
-    }
-    /* 管理員 header 登出按鈕 */
     .admin-header-bar {
       display: flex;
       align-items: center;
@@ -74,51 +24,6 @@
       cursor: pointer;
     }
     .btn-logout:hover { background: rgba(255,255,255,0.15); }
-
-    /* Y/N 禮品按鈕 (覆蓋既有 yn-btn，加大字說明) */
-    .gift-yn-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 6px;
-    }
-    .gift-yn-btn {
-      flex: 1;
-      padding: 18px 10px;
-      border: 2.5px solid var(--gray-300);
-      border-radius: var(--radius-sm);
-      font-size: 1rem;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      background: var(--white);
-      color: var(--gray-600);
-      transition: all 0.15s;
-      line-height: 1.5;
-      text-align: center;
-    }
-    .gift-yn-btn .gift-label {
-      display: block;
-      font-size: 1.3rem;
-    }
-    .gift-yn-btn .gift-sub {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 500;
-      margin-top: 2px;
-    }
-    .gift-yn-btn:hover { border-color: var(--gray-600); }
-    .gift-yn-btn.selected-y {
-      background: var(--green);
-      border-color: var(--green);
-      color: var(--white);
-      box-shadow: 0 2px 8px rgba(46,125,50,0.35);
-    }
-    .gift-yn-btn.selected-n {
-      background: #E65100;
-      border-color: #E65100;
-      color: var(--white);
-      box-shadow: 0 2px 8px rgba(230,81,0,0.35);
-    }
   </style>
 </head>
 <body>
@@ -128,7 +33,7 @@
       <h1 style="font-size:1.1rem; font-weight:700; letter-spacing:0.05em;">🩸 捐血報到系統</h1>
       <button class="btn-logout" onclick="logout()">登出</button>
     </div>
-    <div class="subtitle">禮品領取管理</div>
+    <div class="subtitle">資料管理</div>
   </header>
 
   <main class="container">
@@ -144,7 +49,6 @@
         <button class="tab-btn"        id="tabNumber" onclick="switchTab('number')">報到編號</button>
       </div>
 
-      <!-- Tab: 手機電話 -->
       <div class="tab-panel active" id="panelPhone">
         <form id="phoneForm" novalidate>
           <div class="form-group">
@@ -159,7 +63,6 @@
         </form>
       </div>
 
-      <!-- Tab: 報到編號 -->
       <div class="tab-panel" id="panelNumber">
         <form id="numberForm" novalidate>
           <div class="form-group">
@@ -182,51 +85,118 @@
       <div id="searchError" class="result-box" style="margin-top:12px;"></div>
     </div>
 
-    <!-- 查詢結果 + 禮品操作卡片（初始隱藏） -->
+    <!-- 查詢結果 + 編輯卡片 -->
     <div class="card" id="resultCard" style="display:none;">
 
       <div class="card-title">
-        <span>📋</span> 查詢結果
+        <span>✏️</span> 查詢結果 / 編輯資料
       </div>
 
-      <!-- 9 欄位表格 -->
-      <table class="info-table" id="infoTable"></table>
+      <p style="font-size:0.88rem; color:#1565C0; background:#E3F2FD; padding:10px 12px; border-radius:8px; margin-bottom:18px;">
+        電話號碼不可修改，其餘欄位均可更新。
+      </p>
 
-      <hr style="margin: 20px 0; border:none; border-top:1.5px solid var(--gray-300);">
+      <form id="editForm" novalidate>
 
-      <!-- 禮品領取選擇 -->
-      <div class="form-group" style="margin-bottom:20px;">
-        <label style="font-size:0.92rem; font-weight:700; color:var(--gray-900); display:block; margin-bottom:10px;">
-          禮品領取
-        </label>
-        <div class="gift-yn-group">
-          <button type="button" class="gift-yn-btn" id="btnY" onclick="selectGift('Y')">
-            <span class="gift-label">✅ Y</span>
-            <span class="gift-sub">已領取</span>
-          </button>
-          <button type="button" class="gift-yn-btn" id="btnN" onclick="selectGift('N')">
-            <span class="gift-label">📦 N</span>
-            <span class="gift-sub">之後補發</span>
-          </button>
+        <div class="form-group">
+          <label>報名時間</label>
+          <input type="text" id="f-regtime" class="form-control" placeholder="yyyy/mm/dd">
         </div>
-        <div class="error-msg" id="err-gift" style="margin-top:8px;">請選擇禮品領取狀態</div>
-      </div>
 
-      <div id="submitLoading" class="loading" style="display:none;">
-        <div class="spinner"></div>
-        <span>更新中，請稍候...</span>
-      </div>
+        <div class="form-group">
+          <label for="f-company">公司行號</label>
+          <select id="f-company" class="form-control" onchange="toggleFCompanyOther()">
+            <option value="">請選擇</option>
+            <option value="仕興員工／仕興員工親友">仕興員工／仕興員工親友</option>
+            <option value="董事長親友/獅子會">董事長親友/獅子會</option>
+            <option value="總經理(青商會/台灣應達)">總經理(青商會/台灣應達)</option>
+            <option value="銀行">銀行</option>
+            <option value="貿易商/報關行總務/教友">貿易商/報關行總務/教友</option>
+            <option value="供應廠商">供應廠商</option>
+            <option value="週邊學校警義消">週邊學校警義消</option>
+            <option value="CCK聯誼廠商">CCK聯誼廠商</option>
+            <option value="其他">其他</option>
+          </select>
+          <input type="text" id="f-company-other" class="form-control"
+                 placeholder="請說明來源" maxlength="50"
+                 style="display:none; margin-top:8px;">
+        </div>
 
-      <div id="submitResult" class="result-box"></div>
+        <div class="form-group">
+          <label for="f-name">姓名</label>
+          <input type="text" id="f-name" class="form-control" maxlength="20">
+        </div>
 
-      <button type="button" class="btn btn-primary" id="confirmBtn"
-              onclick="submitGift()" style="margin-top:8px;">
-        確認送出
-      </button>
+        <div class="form-group">
+          <label>電話</label>
+          <input type="tel" id="f-phone" class="form-control" readonly
+                 style="background:#F5F5F5; color:#757575;">
+        </div>
 
-      <button type="button" class="btn btn-outline" onclick="backToSearch()">
-        返回查詢
-      </button>
+        <div class="form-group">
+          <label for="f-cc">捐血CC數</label>
+          <select id="f-cc" class="form-control">
+            <option value="">請選擇</option>
+            <option value="250cc">250cc</option>
+            <option value="500cc">500cc</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>報到時間</label>
+          <input type="text" id="f-checkintime" class="form-control" placeholder="yyyy/mm/dd">
+        </div>
+
+        <div class="form-group">
+          <label for="f-checkinnum">報到編號</label>
+          <input type="text" id="f-checkinnum" class="form-control"
+                 maxlength="4" inputmode="numeric"
+                 oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+
+        <div class="form-group">
+          <label for="f-checkin">報到</label>
+          <select id="f-checkin" class="form-control">
+            <option value="">—（未報到）</option>
+            <option value="Y">Y（已報到）</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="f-donated">捐血成功</label>
+          <select id="f-donated" class="form-control">
+            <option value="">—（未填寫）</option>
+            <option value="Y">Y（成功）</option>
+            <option value="N">N（未成功）</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="f-gift">禮品領取</label>
+          <select id="f-gift" class="form-control">
+            <option value="">—（未填寫）</option>
+            <option value="Y">Y（已領取）</option>
+            <option value="N">N（之後補發）</option>
+            <option value="無符合資格">無符合資格</option>
+          </select>
+        </div>
+
+        <div id="submitLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <span>更新中，請稍候...</span>
+        </div>
+
+        <div id="submitResult" class="result-box"></div>
+
+        <button type="submit" class="btn btn-primary" id="confirmBtn" style="margin-top:8px;">
+          確認更新
+        </button>
+
+        <button type="button" class="btn btn-outline" onclick="backToSearch()">
+          返回查詢
+        </button>
+
+      </form>
 
     </div>
 
@@ -234,14 +204,18 @@
 
   <script src="js/config.js"></script>
   <script>
-    // ── 驗證登入狀態 ──
     const token = sessionStorage.getItem('ADMIN_TOKEN');
     if (!token) {
       window.location.replace('admin-login.html');
     }
 
-    let currentCheckinNumber = null; // 暫存目前查詢的報到編號
-    let selectedGift = null;         // 'Y' or 'N'
+    const KNOWN_COMPANIES = [
+      '仕興員工／仕興員工親友', '董事長親友/獅子會', '總經理(青商會/台灣應達)',
+      '銀行', '貿易商/報關行總務/教友', '供應廠商', '週邊學校警義消',
+      'CCK聯誼廠商', '其他'
+    ];
+
+    let currentPhone = null; // 以電話作為更新時的定位鍵
 
     // ── 登出 ──
     function logout() {
@@ -319,67 +293,57 @@
       }
     }
 
-    // ── 顯示查詢結果 ──
+    // ── 顯示查詢結果（預填表單） ──
     function showResult(data) {
-      currentCheckinNumber = data.報到編號;
-      selectedGift = null;
+      currentPhone = data.電話 || '';
 
-      // 重置禮品按鈕與提示
-      document.getElementById('btnY').className = 'gift-yn-btn';
-      document.getElementById('btnN').className = 'gift-yn-btn';
-      document.getElementById('err-gift').classList.remove('show');
       document.getElementById('submitResult').className = 'result-box';
       document.getElementById('submitResult').innerHTML  = '';
       document.getElementById('confirmBtn').disabled = false;
 
-      // 產生表格
-      const fields = [
-        { label: '報名時間', value: formatDateOnly(data.報名時間) },
-        { label: '公司行號', value: data.公司行號 || '—' },
-        { label: '姓名',     value: data.姓名     || '—' },
-        { label: '電話',     value: data.電話     || '—' },
-        { label: '捐血CC數', value: data.捐血CC數 || '—' },
-        { label: '報到時間', value: formatDateOnly(data.報到時間) },
-        { label: '報到編號', value: data.報到編號 ? String(data.報到編號).padStart(4,'0') : '—' },
-        { label: '報到',     value: data.報到,    badge: true },
-        { label: '捐血成功', value: data.捐血成功, badge: true },
-      ];
+      document.getElementById('f-regtime').value     = formatDateStr(data.報名時間);
+      document.getElementById('f-name').value         = data.姓名     || '';
+      document.getElementById('f-phone').value        = data.電話     || '';
+      document.getElementById('f-cc').value           = data.捐血CC數 || '';
+      document.getElementById('f-checkintime').value  = formatDateStr(data.報到時間);
+      document.getElementById('f-checkinnum').value   = data.報到編號 ? String(data.報到編號).padStart(4, '0') : '';
+      document.getElementById('f-checkin').value      = data.報到     || '';
+      document.getElementById('f-donated').value      = data.捐血成功 || '';
+      document.getElementById('f-gift').value         = data.禮品領取 || '';
 
-      const rows = fields.map(function(f) {
-        let valHtml;
-        if (f.badge) {
-          if (f.value === 'Y') {
-            valHtml = '<span class="badge-y">Y 是</span>';
-          } else if (f.value === 'N') {
-            valHtml = '<span class="badge-n">N 否</span>';
-          } else {
-            valHtml = f.value || '—';
-          }
-        } else {
-          valHtml = escHtml(String(f.value));
-        }
-        return `<tr><td>${f.label}</td><td>${valHtml}</td></tr>`;
-      }).join('');
+      // 公司行號（含「其他」判斷）
+      const companyVal = data.公司行號 || '';
+      const sel = document.getElementById('f-company');
+      if (KNOWN_COMPANIES.includes(companyVal)) {
+        sel.value = companyVal;
+        document.getElementById('f-company-other').style.display = 'none';
+      } else if (companyVal) {
+        sel.value = '其他';
+        document.getElementById('f-company-other').style.display = 'block';
+        document.getElementById('f-company-other').value = companyVal;
+      } else {
+        sel.value = '';
+        document.getElementById('f-company-other').style.display = 'none';
+      }
 
-      document.getElementById('infoTable').innerHTML = rows;
       document.getElementById('resultCard').style.display = 'block';
       document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // ── 選擇禮品 Y/N ──
-    function selectGift(val) {
-      selectedGift = val;
-      document.getElementById('btnY').className = 'gift-yn-btn' + (val === 'Y' ? ' selected-y' : '');
-      document.getElementById('btnN').className = 'gift-yn-btn' + (val === 'N' ? ' selected-n' : '');
-      document.getElementById('err-gift').classList.remove('show');
+    // ── 公司行號「其他」切換 ──
+    function toggleFCompanyOther() {
+      const isOther = document.getElementById('f-company').value === '其他';
+      document.getElementById('f-company-other').style.display = isOther ? 'block' : 'none';
     }
 
-    // ── 確認送出 ──
-    async function submitGift() {
-      if (!selectedGift) {
-        document.getElementById('err-gift').classList.add('show');
-        return;
-      }
+    function getFCompanyValue() {
+      const sel = document.getElementById('f-company').value;
+      return sel === '其他' ? document.getElementById('f-company-other').value.trim() : sel;
+    }
+
+    // ── 確認更新 ──
+    document.getElementById('editForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
 
       const btn = document.getElementById('confirmBtn');
       btn.disabled = true;
@@ -387,14 +351,24 @@
       document.getElementById('submitResult').className = 'result-box';
       document.getElementById('submitResult').innerHTML  = '';
 
+      const checkinNum = document.getElementById('f-checkinnum').value.trim();
+
       try {
         const res  = await fetch(CONFIG.GAS_URL, {
           method: 'POST',
           body: JSON.stringify({
-            action:   'update_gift',
+            action:   'admin_update',
             token:    token,
-            報到編號: currentCheckinNumber,
-            禮品領取: selectedGift,
+            _phone:   currentPhone,
+            報名時間: document.getElementById('f-regtime').value.trim(),
+            公司行號: getFCompanyValue(),
+            姓名:     document.getElementById('f-name').value.trim(),
+            捐血CC數: document.getElementById('f-cc').value,
+            報到時間: document.getElementById('f-checkintime').value.trim(),
+            報到編號: checkinNum,
+            報到:     document.getElementById('f-checkin').value,
+            捐血成功: document.getElementById('f-donated').value,
+            禮品領取: document.getElementById('f-gift').value,
           }),
         });
         const data = await res.json();
@@ -407,9 +381,8 @@
 
         const box = document.getElementById('submitResult');
         if (data.status === 'success') {
-          const label = selectedGift === 'Y' ? '✅ 已領取' : '📦 之後補發';
           box.className = 'result-box success';
-          box.innerHTML = `<div class="result-title">✅ 更新成功</div><div class="result-detail">禮品領取已記錄為：<strong>${label}</strong></div>`;
+          box.innerHTML = '<div class="result-title">✅ 更新成功</div><div class="result-detail">資料已更新至 Google Sheet。</div>';
         } else {
           box.className = 'result-box error';
           box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${data.message}</div>`;
@@ -423,7 +396,7 @@
       } finally {
         document.getElementById('submitLoading').style.display = 'none';
       }
-    }
+    });
 
     // ── 返回查詢 ──
     function backToSearch() {
@@ -431,26 +404,19 @@
       document.getElementById('s-phone').value  = '';
       document.getElementById('s-number').value = '';
       clearSearchError();
-      currentCheckinNumber = null;
-      selectedGift = null;
+      currentPhone = null;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ── 日期格式化（ISO → yyyy-mm-dd，台灣時區） ──
-    function formatDateOnly(val) {
-      if (!val || val === '—') return '—';
+    // ── 日期格式化（Date 物件或 ISO 字串 → yyyy/mm/dd） ──
+    function formatDateStr(val) {
+      if (!val) return '';
       const d = new Date(val);
-      if (isNaN(d.getTime())) return escHtml(String(val));
-      return d.toLocaleDateString('sv', { timeZone: 'Asia/Taipei' }); // 'sv' locale = yyyy-mm-dd
-    }
-
-    // ── HTML 跳脫（防 XSS） ──
-    function escHtml(str) {
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+      if (isNaN(d.getTime())) return String(val);
+      const yyyy = d.getFullYear();
+      const mm   = String(d.getMonth() + 1).padStart(2, '0');
+      const dd   = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}/${mm}/${dd}`;
     }
   </script>
 </body>

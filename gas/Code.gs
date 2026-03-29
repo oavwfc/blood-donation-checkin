@@ -32,6 +32,7 @@ function doPost(e) {
       case 'admin_login':     result = adminLogin(data);      break;
       case 'admin_lookup':    result = adminLookup(data);     break;
       case 'update_gift':     result = updateGift(data);      break;
+      case 'admin_update':   result = adminUpdate(data);    break;
       default:
         result = { status: 'error', message: '未知的操作類型' };
     }
@@ -119,7 +120,7 @@ function register(data) {
 
   sheet.getRange(newRow, 1, 1, 10).setValues([[
     now, data.公司行號, data.姓名, '',
-    data.捐血CC數, '', '', '', '', 'Y'
+    data.捐血CC數, '', '', '', '', ''
   ]]);
 
   var phoneCell = sheet.getRange(newRow, 4); // D 電話
@@ -183,7 +184,7 @@ function checkinNew(data) {
 
   sheet.getRange(newRow, 1, 1, 10).setValues([[
     now, data.公司行號, data.姓名, '',
-    data.捐血CC數, now, '', 'Y', '', 'Y'
+    data.捐血CC數, now, '', 'Y', '', ''
   ]]);
 
   var phoneCell = sheet.getRange(newRow, 4); // D 電話
@@ -241,6 +242,8 @@ function updateDonation(data) {
       sheet.getRange(rowNum, 9).setValue(data.捐血成功);  // I 捐血成功
       if (data.捐血成功 === 'N') {
         sheet.getRange(rowNum, 10).setValue('無符合資格'); // J 禮品領取
+      } else if (data.捐血成功 === 'Y') {
+        sheet.getRange(rowNum, 10).setValue('Y');          // J 禮品領取
       }
 
       return {
@@ -383,7 +386,8 @@ function adminLookup(data) {
     報到時間: row[5],
     報到編號: String(row[6]),
     報到:     row[7],
-    捐血成功: row[8]
+    捐血成功: row[8],
+    禮品領取: row[9]
   };
 }
 
@@ -406,6 +410,42 @@ function updateGift(data) {
   }
 
   return { status: 'not_found', message: '查無此報到編號，無法更新。' };
+}
+
+// ── 管理者全欄位更新（以電話定位，不更新電話） ─────
+
+function adminUpdate(data) {
+  if (!validateAdminToken(data.token)) {
+    return { status: 'unauthorized', message: '登入逾時，請重新登入。' };
+  }
+
+  const sheet = getSheet();
+  const rows  = sheet.getDataRange().getValues();
+  const phone = String(data._phone);
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][3]) === phone) {
+      const rowNum = i + 1;
+
+      if (data.報名時間 !== undefined) sheet.getRange(rowNum, 1).setValue(data.報名時間);
+      if (data.公司行號 !== undefined) sheet.getRange(rowNum, 2).setValue(data.公司行號);
+      if (data.姓名     !== undefined) sheet.getRange(rowNum, 3).setValue(data.姓名);
+      // D 電話 不可修改
+      if (data.捐血CC數 !== undefined) sheet.getRange(rowNum, 5).setValue(data.捐血CC數);
+      if (data.報到時間 !== undefined) sheet.getRange(rowNum, 6).setValue(data.報到時間);
+      if (data.報到編號 !== undefined) {
+        const newNum = data.報到編號 ? String(data.報到編號).padStart(4, '0') : '';
+        sheet.getRange(rowNum, 7).setNumberFormat('@').setValue(newNum);
+      }
+      if (data.報到     !== undefined) sheet.getRange(rowNum, 8).setValue(data.報到);
+      if (data.捐血成功 !== undefined) sheet.getRange(rowNum, 9).setValue(data.捐血成功);
+      if (data.禮品領取 !== undefined) sheet.getRange(rowNum, 10).setValue(data.禮品領取);
+
+      return { status: 'success', message: '資料更新成功！' };
+    }
+  }
+
+  return { status: 'not_found', message: '查無此資料，無法更新。' };
 }
 
 // ── 手機號碼查詢（捐血前入口） ─────────────────
