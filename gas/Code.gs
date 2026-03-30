@@ -20,19 +20,34 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
 
+    // 管理者相關 action 不受系統開關影響
+    const adminActions = new Set([
+      'admin_login', 'admin_lookup', 'admin_update',
+      'update_gift', 'get_system_status', 'set_system_status'
+    ]);
+
+    if (!adminActions.has(action)) {
+      const active = PropertiesService.getScriptProperties().getProperty('SYSTEM_ACTIVE');
+      if (active === 'false') {
+        return buildResponse({ status: 'system_closed', message: '系統目前已關閉，活動期間才開放使用。' });
+      }
+    }
+
     let result;
     switch (action) {
-      case 'register':        result = register(data);        break;
-      case 'checkin':         result = checkin(data);         break;
-      case 'checkin_new':     result = checkinNew(data);      break;
-      case 'lookup_checkin':  result = lookupCheckin(data);   break;
-      case 'lookup_phone':    result = lookupPhone(data);     break;
-      case 'update_donation': result = updateDonation(data);  break;
-      case 'update_profile':  result = updateProfile(data);   break;
-      case 'admin_login':     result = adminLogin(data);      break;
-      case 'admin_lookup':    result = adminLookup(data);     break;
-      case 'update_gift':     result = updateGift(data);      break;
-      case 'admin_update':   result = adminUpdate(data);    break;
+      case 'register':            result = register(data);          break;
+      case 'checkin':             result = checkin(data);           break;
+      case 'checkin_new':         result = checkinNew(data);        break;
+      case 'lookup_checkin':      result = lookupCheckin(data);     break;
+      case 'lookup_phone':        result = lookupPhone(data);       break;
+      case 'update_donation':     result = updateDonation(data);    break;
+      case 'update_profile':      result = updateProfile(data);     break;
+      case 'admin_login':         result = adminLogin(data);        break;
+      case 'admin_lookup':        result = adminLookup(data);       break;
+      case 'update_gift':         result = updateGift(data);        break;
+      case 'admin_update':        result = adminUpdate(data);       break;
+      case 'get_system_status':   result = getSystemStatus(data);   break;
+      case 'set_system_status':   result = setSystemStatus(data);   break;
       default:
         result = { status: 'error', message: '未知的操作類型' };
     }
@@ -471,6 +486,24 @@ function adminUpdate(data) {
   }
 
   return { status: 'not_found', message: '查無此資料，無法更新。' };
+}
+
+// ── 系統開關 ─────────────────────────────────
+
+function getSystemStatus(data) {
+  if (!validateAdminToken(data.token)) {
+    return { status: 'unauthorized', message: '登入逾時，請重新登入。' };
+  }
+  const active = PropertiesService.getScriptProperties().getProperty('SYSTEM_ACTIVE');
+  return { status: 'success', active: active !== 'false' };
+}
+
+function setSystemStatus(data) {
+  if (!validateAdminToken(data.token)) {
+    return { status: 'unauthorized', message: '登入逾時，請重新登入。' };
+  }
+  PropertiesService.getScriptProperties().setProperty('SYSTEM_ACTIVE', data.active ? 'true' : 'false');
+  return { status: 'success', active: data.active };
 }
 
 // ── 手機號碼查詢（捐血前入口） ─────────────────

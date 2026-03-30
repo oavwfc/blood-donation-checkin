@@ -24,6 +24,42 @@
       cursor: pointer;
     }
     .btn-logout:hover { background: rgba(255,255,255,0.15); }
+    .system-toggle-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .system-toggle-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #333;
+    }
+    .system-status {
+      font-size: 0.88rem;
+      margin-top: 2px;
+    }
+    .status-open  { color: #2E7D32; }
+    .status-close { color: #C62828; }
+    .btn-toggle {
+      border: none;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-toggle-open  { background: #E8F5E9; color: #2E7D32; }
+    .btn-toggle-open:hover  { background: #C8E6C9; }
+    .btn-toggle-close { background: #FFEBEE; color: #C62828; }
+    .btn-toggle-close:hover { background: #FFCDD2; }
   </style>
 </head>
 <body>
@@ -37,6 +73,15 @@
   </header>
 
   <main class="container">
+
+    <!-- 系統開關 -->
+    <div class="system-toggle-card" id="systemToggleCard">
+      <div>
+        <div class="system-toggle-label">系統狀態</div>
+        <div class="system-status" id="systemStatusText">讀取中...</div>
+      </div>
+      <button class="btn-toggle" id="toggleBtn" onclick="toggleSystem()" disabled>讀取中</button>
+    </div>
 
     <!-- 搜尋卡片 -->
     <div class="card" id="searchCard">
@@ -207,8 +252,73 @@
   <script>
     const token = sessionStorage.getItem('ADMIN_TOKEN');
     if (!token) {
-      window.location.replace('admin-login.html');
+      window.location.replace('oavwfc2008-admin-login.html');
     }
+
+    // ── 系統開關 ──
+    let systemActive = null;
+
+    async function loadSystemStatus() {
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_system_status', token: token }),
+        });
+        const data = await res.json();
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('oavwfc2008-admin-login.html');
+          return;
+        }
+        if (data.status === 'success') {
+          updateToggleUI(data.active);
+        }
+      } catch (err) {
+        document.getElementById('systemStatusText').textContent = '讀取失敗';
+      }
+    }
+
+    function updateToggleUI(active) {
+      systemActive = active;
+      const statusEl = document.getElementById('systemStatusText');
+      const btn      = document.getElementById('toggleBtn');
+      if (active) {
+        statusEl.textContent  = '✅ 開啟中（民眾可以使用）';
+        statusEl.className    = 'system-status status-open';
+        btn.textContent       = '關閉系統';
+        btn.className         = 'btn-toggle btn-toggle-close';
+      } else {
+        statusEl.textContent  = '🔴 已關閉（民眾無法使用）';
+        statusEl.className    = 'system-status status-close';
+        btn.textContent       = '開啟系統';
+        btn.className         = 'btn-toggle btn-toggle-open';
+      }
+      btn.disabled = false;
+    }
+
+    async function toggleSystem() {
+      const btn = document.getElementById('toggleBtn');
+      btn.disabled = true;
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set_system_status', token: token, active: !systemActive }),
+        });
+        const data = await res.json();
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('oavwfc2008-admin-login.html');
+          return;
+        }
+        if (data.status === 'success') {
+          updateToggleUI(data.active);
+        }
+      } catch (err) {
+        btn.disabled = false;
+      }
+    }
+
+    loadSystemStatus();
 
     const KNOWN_COMPANIES = [
       '仕興員工／仕興員工親友', '董事長親友/獅子會', '總經理(青商會/台灣應達)',
@@ -221,7 +331,7 @@
     // ── 登出 ──
     function logout() {
       sessionStorage.removeItem('ADMIN_TOKEN');
-      window.location.replace('admin-login.html');
+      window.location.replace('oavwfc2008-admin-login.html');
     }
 
     // ── Tab 切換 ──
@@ -274,7 +384,7 @@
 
         if (data.status === 'unauthorized') {
           sessionStorage.removeItem('ADMIN_TOKEN');
-          window.location.replace('admin-login.html');
+          window.location.replace('oavwfc2008-admin-login.html');
           return;
         }
 
@@ -376,7 +486,7 @@
 
         if (data.status === 'unauthorized') {
           sessionStorage.removeItem('ADMIN_TOKEN');
-          window.location.replace('admin-login.html');
+          window.location.replace('oavwfc2008-admin-login.html');
           return;
         }
 
