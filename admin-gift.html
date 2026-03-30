@@ -25,9 +25,6 @@
     }
     .btn-logout:hover { background: rgba(255,255,255,0.15); }
     .system-toggle-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       background: #fff;
       border-radius: var(--radius);
       padding: 14px 18px;
@@ -38,28 +35,16 @@
       font-size: 0.95rem;
       font-weight: 600;
       color: #333;
+      margin-bottom: 10px;
     }
-    .system-status {
-      font-size: 0.88rem;
-      margin-top: 2px;
+    #btnOpen.active  { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+    #btnClose.active { background: #C62828; color: #fff; border-color: #C62828; }
+    .system-status-text {
+      font-size: 0.85rem;
+      margin-top: 6px;
     }
     .status-open  { color: #2E7D32; }
     .status-close { color: #C62828; }
-    .btn-toggle {
-      border: none;
-      border-radius: 20px;
-      padding: 8px 20px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background 0.15s;
-      white-space: nowrap;
-    }
-    .btn-toggle-open  { background: #E8F5E9; color: #2E7D32; }
-    .btn-toggle-open:hover  { background: #C8E6C9; }
-    .btn-toggle-close { background: #FFEBEE; color: #C62828; }
-    .btn-toggle-close:hover { background: #FFCDD2; }
   </style>
 </head>
 <body>
@@ -76,11 +61,12 @@
 
     <!-- 系統開關 -->
     <div class="system-toggle-card" id="systemToggleCard">
-      <div>
-        <div class="system-toggle-label">系統狀態</div>
-        <div class="system-status" id="systemStatusText">讀取中...</div>
+      <div class="system-toggle-label">系統狀態</div>
+      <div class="tabs" style="margin-bottom:8px;">
+        <button class="tab-btn" id="btnOpen"  onclick="toggleSystem(true)"  disabled>目前開啟</button>
+        <button class="tab-btn" id="btnClose" onclick="toggleSystem(false)" disabled>目前關閉</button>
       </div>
-      <button class="btn-toggle" id="toggleBtn" onclick="toggleSystem()" disabled>讀取中</button>
+      <div class="system-status-text" id="systemStatusText">讀取中...</div>
     </div>
 
     <!-- 搜尋卡片 -->
@@ -280,29 +266,33 @@
 
     function updateToggleUI(active) {
       systemActive = active;
+      const btnOpen  = document.getElementById('btnOpen');
+      const btnClose = document.getElementById('btnClose');
       const statusEl = document.getElementById('systemStatusText');
-      const btn      = document.getElementById('toggleBtn');
+      btnOpen.classList.toggle('active',  active);
+      btnClose.classList.toggle('active', !active);
+      btnOpen.disabled  = false;
+      btnClose.disabled = false;
       if (active) {
-        statusEl.textContent  = '✅ 開啟中（民眾可以使用）';
-        statusEl.className    = 'system-status status-open';
-        btn.textContent       = '關閉系統';
-        btn.className         = 'btn-toggle btn-toggle-close';
+        statusEl.textContent = '✅ 開啟中（民眾可以使用）';
+        statusEl.className   = 'system-status-text status-open';
       } else {
-        statusEl.textContent  = '🔴 已關閉（民眾無法使用）';
-        statusEl.className    = 'system-status status-close';
-        btn.textContent       = '開啟系統';
-        btn.className         = 'btn-toggle btn-toggle-open';
+        statusEl.textContent = '🔴 已關閉（民眾無法使用）';
+        statusEl.className   = 'system-status-text status-close';
       }
-      btn.disabled = false;
     }
 
-    async function toggleSystem() {
-      const btn = document.getElementById('toggleBtn');
-      btn.disabled = true;
+    async function toggleSystem(newActive) {
+      if (systemActive === newActive) return;
+      const previous = systemActive;
+
+      // 先更新畫面，再送 API
+      updateToggleUI(newActive);
+
       try {
         const res  = await fetch(CONFIG.GAS_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'set_system_status', token: token, active: !systemActive }),
+          body: JSON.stringify({ action: 'set_system_status', token: token, active: newActive }),
         });
         const data = await res.json();
         if (data.status === 'unauthorized') {
@@ -310,11 +300,11 @@
           window.location.replace('oavwfc2008-admin-login.html');
           return;
         }
-        if (data.status === 'success') {
-          updateToggleUI(data.active);
+        if (data.status !== 'success') {
+          updateToggleUI(previous); // 失敗時還原
         }
       } catch (err) {
-        btn.disabled = false;
+        updateToggleUI(previous); // 連線失敗時還原
       }
     }
 
