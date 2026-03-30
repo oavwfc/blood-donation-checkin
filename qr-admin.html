@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者入口 QR Code - 捐血報到系統</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .qr-wrapper {
+      text-align: center;
+      padding: 32px 20px;
+    }
+    .qr-label {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1565C0;
+      margin-bottom: 8px;
+    }
+    .qr-sublabel {
+      font-size: 1rem;
+      color: var(--gray-600);
+      margin-bottom: 28px;
+    }
+    #qrcode {
+      display: inline-block;
+      padding: 16px;
+      background: #fff;
+      border: 3px solid #E0E0E0;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    #qrcode canvas {
+      display: block;
+    }
+    .qr-url {
+      font-size: 0.82rem;
+      color: #757575;
+      word-break: break-all;
+      margin-bottom: 28px;
+      padding: 0 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>🩸 捐血報到系統</h1>
+  </header>
+
+  <main class="container">
+    <div class="card qr-wrapper">
+      <div class="qr-label">🔐 管理者入口</div>
+      <div class="qr-sublabel">僅供活動工作人員使用</div>
+
+      <div id="qrcode"></div>
+
+      <div class="qr-url" id="qrUrl"></div>
+
+      <button class="btn btn-primary" onclick="downloadQR()">
+        ⬇ 下載圖片（PNG）
+      </button>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const URL = 'https://oavwfc.github.io/blood-donation-checkin/admin-login.html';
+
+    document.getElementById('qrUrl').textContent = URL;
+
+    new QRCode(document.getElementById('qrcode'), {
+      text:           URL,
+      width:          280,
+      height:         280,
+      colorDark:      '#000000',
+      colorLight:     '#ffffff',
+      correctLevel:   QRCode.CorrectLevel.H,
+    });
+
+    function downloadQR() {
+      const canvas = document.querySelector('#qrcode canvas');
+      if (!canvas) return;
+
+      const padding = 24;
+      const out = document.createElement('canvas');
+      out.width  = canvas.width  + padding * 2;
+      out.height = canvas.height + padding * 2;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvas, padding, padding);
+
+      const a = document.createElement('a');
+      a.download = 'qr-捐血報到-管理者入口.png';
+      a.href = out.toDataURL('image/png');
+      a.click();
+    }
+  </script>
+</body>
+</html>
