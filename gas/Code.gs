@@ -387,6 +387,7 @@ function updateProfile(data) {
       return {
         status:   'success',
         message:  '資料更新成功！',
+        報名時間: formatSheetDateValue(rows[i][0]),
         公司行號: data.公司行號 || rows[i][1],
         姓名:     data.姓名     || rows[i][2],
         電話:     rows[i][3],

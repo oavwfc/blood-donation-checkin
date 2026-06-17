@@ -343,8 +343,12 @@
       document.getElementById('profileWarningBox').innerHTML = '';
       document.getElementById('checkinResult').className = 'result-box';
       document.getElementById('checkinResult').innerHTML = '';
-      document.getElementById('completeRegisterBtn').style.display = 'block';
       document.getElementById('checkinBtn').style.display = 'block';
+
+      const isRegistered = !!String(data.報名時間 || '').trim();
+      const isCheckedIn = data.報到 === 'Y';
+      document.getElementById('completeRegisterBtn').style.display =
+        (isRegistered || isCheckedIn) ? 'none' : 'block';
 
       document.getElementById('foundInfo').innerHTML = `
         <div><span style="color:#757575; font-size:0.85rem;">報名時間</span><br><strong>${data.報名時間 || '尚未完成報名'}</strong></div>
