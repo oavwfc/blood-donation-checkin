@@ -71,6 +71,8 @@
         line-height: 2;
       "></div>
 
+      <div id="alreadyRegisteredBox" class="result-box success" style="display:none;"></div>
+
       <div id="profileWarningBox" class="result-box warning" style="display:none;"></div>
 
       <div id="alreadyCheckinBox" class="result-box warning" style="display:none;"></div>
@@ -337,6 +339,8 @@
 
     // ── 顯示已報名資料 ──
     function showFoundCard(data) {
+      document.getElementById('alreadyRegisteredBox').style.display = 'none';
+      document.getElementById('alreadyRegisteredBox').innerHTML = '';
       document.getElementById('alreadyCheckinBox').style.display = 'none';
       document.getElementById('alreadyCheckinBox').innerHTML = '';
       document.getElementById('profileWarningBox').style.display = 'none';
@@ -351,12 +355,24 @@
         (isRegistered || isCheckedIn) ? 'none' : 'block';
 
       document.getElementById('foundInfo').innerHTML = `
-        <div><span style="color:#757575; font-size:0.85rem;">報名時間</span><br><strong>${data.報名時間 || '尚未完成報名'}</strong></div>
+        <div style="background:#FFF8E1; border:1.5px solid #FFE082; border-radius:8px; padding:10px 12px; margin-bottom:8px;">
+          <span style="color:#8A5A00; font-size:0.85rem;">報名時間</span><br>
+          <strong style="color:#5D4000;">${data.報名時間 || '尚未完成報名'}</strong>
+        </div>
         <div><span style="color:#757575; font-size:0.85rem;">公司行號</span><br><strong>${data.公司行號}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">姓名</span><br><strong>${data.姓名}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">手機號碼</span><br><strong>${data.電話}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">捐血CC數</span><br><strong>${data.捐血CC數}</strong></div>
       `;
+
+      if (isRegistered && !isCheckedIn) {
+        const registeredBox = document.getElementById('alreadyRegisteredBox');
+        registeredBox.style.display = 'block';
+        registeredBox.innerHTML = `
+          <div class="result-title">✅ 您已完成報名</div>
+          <div class="result-detail">您已於 ${data.報名時間} 完成報名，可確認資料後進行報到。</div>
+        `;
+      }
 
       if (!String(data.公司行號 || '').trim() || !String(data.捐血CC數 || '').trim()) {
         const warningBox = document.getElementById('profileWarningBox');
