@@ -59,7 +59,7 @@
       </div>
 
       <p style="font-size:0.88rem; color:#2E7D32; background:#E8F5E9; padding:10px 12px; border-radius:8px; margin-bottom:18px;">
-        您已完成報名，請確認以下資料是否正確。
+        已查詢到您的資料，請確認以下資料是否正確。
       </p>
 
       <div id="foundInfo" style="
@@ -71,7 +71,14 @@
         line-height: 2;
       "></div>
 
+      <div id="profileWarningBox" class="result-box warning" style="display:none;"></div>
+
       <div id="alreadyCheckinBox" class="result-box warning" style="display:none;"></div>
+
+      <div id="completeRegisterLoading" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <span>完成報名中，請稍候...</span>
+      </div>
 
       <div id="checkinLoading" class="loading" style="display:none;">
         <div class="spinner"></div>
@@ -79,6 +86,11 @@
       </div>
 
       <div id="checkinResult" class="result-box"></div>
+
+      <button type="button" class="btn btn-primary" id="completeRegisterBtn"
+              onclick="completeRegister()">
+        完成報名
+      </button>
 
       <button type="button" class="btn btn-orange" id="checkinBtn"
               onclick="doCheckin()">
@@ -325,12 +337,31 @@
 
     // ── 顯示已報名資料 ──
     function showFoundCard(data) {
+      document.getElementById('alreadyCheckinBox').style.display = 'none';
+      document.getElementById('alreadyCheckinBox').innerHTML = '';
+      document.getElementById('profileWarningBox').style.display = 'none';
+      document.getElementById('profileWarningBox').innerHTML = '';
+      document.getElementById('checkinResult').className = 'result-box';
+      document.getElementById('checkinResult').innerHTML = '';
+      document.getElementById('completeRegisterBtn').style.display = 'block';
+      document.getElementById('checkinBtn').style.display = 'block';
+
       document.getElementById('foundInfo').innerHTML = `
+        <div><span style="color:#757575; font-size:0.85rem;">報名時間</span><br><strong>${data.報名時間 || '尚未完成報名'}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">公司行號</span><br><strong>${data.公司行號}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">姓名</span><br><strong>${data.姓名}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">手機號碼</span><br><strong>${data.電話}</strong></div>
         <div><span style="color:#757575; font-size:0.85rem;">捐血CC數</span><br><strong>${data.捐血CC數}</strong></div>
       `;
+
+      if (!String(data.公司行號 || '').trim() || !String(data.捐血CC數 || '').trim()) {
+        const warningBox = document.getElementById('profileWarningBox');
+        warningBox.style.display = 'block';
+        warningBox.innerHTML = `
+          <div class="result-title">⚠️ 資料尚未完整</div>
+          <div class="result-detail">公司行號或捐血CC數尚未填寫，仍可先完成報名，稍後可使用「修改資料」補齊。</div>
+        `;
+      }
 
       if (data.報到 === 'Y') {
         const box = document.getElementById('alreadyCheckinBox');
@@ -349,6 +380,48 @@
     function showNotFoundCard(phone) {
       document.getElementById('r-phone').value = phone;
       document.getElementById('step2NotFoundCard').style.display = 'block';
+    }
+
+    // ── Step 2a：完成報名 ──
+    async function completeRegister() {
+      if (!foundData) return;
+
+      const btn = document.getElementById('completeRegisterBtn');
+      btn.disabled = true;
+      document.getElementById('completeRegisterLoading').style.display = 'flex';
+      document.getElementById('checkinResult').className = 'result-box';
+      document.getElementById('checkinResult').innerHTML = '';
+
+      try {
+        const res  = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'complete_register',
+            電話: foundData.電話,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          window.location.href = `success.html?type=register&name=${encodeURIComponent(data.姓名 || foundData.姓名)}`;
+        } else if (data.status === 'already_registered') {
+          foundData.報名時間 = data.報名時間 || foundData.報名時間;
+          const box = document.getElementById('checkinResult');
+          box.className = 'result-box warning';
+          box.innerHTML = `<div class="result-title">⚠️ 已完成報名</div><div class="result-detail">${data.message}</div>`;
+        } else {
+          const box = document.getElementById('checkinResult');
+          box.className = 'result-box error';
+          box.innerHTML = `<div class="result-title">❌ 報名失敗</div><div class="result-detail">${data.message}</div>`;
+        }
+      } catch (err) {
+        const box = document.getElementById('checkinResult');
+        box.className = 'result-box error';
+        box.innerHTML = '<div class="result-title">❌ 連線錯誤</div><div class="result-detail">請確認網路後再試。</div>';
+      } finally {
+        document.getElementById('completeRegisterLoading').style.display = 'none';
+        btn.disabled = false;
+      }
     }
 
     // ── Step 2a：完成報到 ──

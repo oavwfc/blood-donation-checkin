@@ -36,6 +36,7 @@ function doPost(e) {
     let result;
     switch (action) {
       case 'register':            result = register(data);          break;
+      case 'complete_register':   result = completeRegister(data);  break;
       case 'checkin':             result = checkin(data);           break;
       case 'checkin_new':         result = checkinNew(data);        break;
       case 'lookup_checkin':      result = lookupCheckin(data);     break;
@@ -100,6 +101,14 @@ function formatDate(date) {
   return `${yyyy}/${mm}/${dd}`;
 }
 
+function formatSheetDateValue(value) {
+  if (!value) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    return formatDate(value);
+  }
+  return String(value);
+}
+
 function generateCheckinNumber(sheet) {
   const data = sheet.getDataRange().getValues();
   let maxNum = 0;
@@ -151,6 +160,63 @@ function register(data) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ── 完成報名（預先名單補寫報名時間） ───────────
+
+function completeRegister(data) {
+  const sheet = getSheet();
+  const rows  = sheet.getDataRange().getValues();
+  const phone = String(data.電話);
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][3]) === phone) {
+      const registeredAt = formatSheetDateValue(rows[i][0]);
+
+      if (registeredAt) {
+        return {
+          status: 'already_registered',
+          message: '此資料已完成報名，您已於 ' + registeredAt + ' 完成報名。',
+          姓名: rows[i][2],
+          報名時間: registeredAt
+        };
+      }
+
+      const lock = LockService.getScriptLock();
+      try {
+        lock.waitLock(15000);
+      } catch (e) {
+        return { status: 'error', message: '系統繁忙，請稍後再試。' };
+      }
+
+      try {
+        const rowNum = i + 1;
+        const currentRegisteredAt = formatSheetDateValue(sheet.getRange(rowNum, 1).getValue());
+        if (currentRegisteredAt) {
+          return {
+            status: 'already_registered',
+            message: '此資料已完成報名，您已於 ' + currentRegisteredAt + ' 完成報名。',
+            姓名: rows[i][2],
+            報名時間: currentRegisteredAt
+          };
+        }
+
+        const now = formatDate(new Date());
+        sheet.getRange(rowNum, 1).setValue(now); // A 報名時間
+
+        return {
+          status: 'success',
+          message: '報名成功！',
+          姓名: rows[i][2],
+          報名時間: now
+        };
+      } finally {
+        lock.releaseLock();
+      }
+    }
+  }
+
+  return { status: 'not_found', message: '查無此手機號碼的資料，無法完成報名。' };
 }
 
 // ── 報到（已報名） ───────────────────────────
@@ -517,6 +583,7 @@ function lookupPhone(data) {
     if (String(rows[i][3]) === phone) {
       return {
         status: 'found',
+        報名時間: formatSheetDateValue(rows[i][0]),
         公司行號: rows[i][1],
         姓名:     rows[i][2],
         電話:     rows[i][3],
