@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>捐血報到系統</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/config.js"></script>
 </head>
 <body>
 
@@ -20,6 +21,12 @@
       <p>感謝您的愛心，請依流程完成報名與報到</p>
     </div>
 
+    <section class="current-number-card" aria-live="polite">
+      <div class="current-number-label">當前號碼</div>
+      <div class="current-number-value" id="currentNumber">----</div>
+      <div class="current-number-note">請重新整理以確認目前叫號</div>
+    </section>
+
     <nav class="nav-grid">
       <a href="pre-donation.html" class="nav-btn register">
         <span class="icon">📝</span>
@@ -30,7 +37,7 @@
         <span>›</span>
       </a>
 
-      <a href="post-donation.html" class="nav-btn donation">
+      <a href="post-donation.html" class="nav-btn donation hidden">
         <span class="icon">🏅</span>
         <div class="info">
           <div class="label">捐血後填寫</div>
@@ -42,5 +49,23 @@
 
   </main>
 
+  <script>
+    async function loadCurrentNumber() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_current_call_number' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.number) {
+          document.getElementById('currentNumber').textContent = String(data.number).padStart(4, '0');
+        }
+      } catch (err) {
+        document.getElementById('currentNumber').textContent = '----';
+      }
+    }
+
+    loadCurrentNumber();
+  </script>
 </body>
 </html>

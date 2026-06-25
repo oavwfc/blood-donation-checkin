@@ -23,7 +23,8 @@ function doPost(e) {
     // 管理者相關 action 不受系統開關影響
     const adminActions = new Set([
       'admin_login', 'admin_lookup', 'admin_update',
-      'update_gift', 'get_system_status', 'set_system_status'
+      'update_gift', 'get_system_status', 'set_system_status',
+      'get_current_call_number', 'set_current_call_number'
     ]);
 
     if (!adminActions.has(action)) {
@@ -49,6 +50,12 @@ function doPost(e) {
       case 'admin_update':        result = adminUpdate(data);       break;
       case 'get_system_status':   result = getSystemStatus(data);   break;
       case 'set_system_status':   result = setSystemStatus(data);   break;
+      case 'get_current_call_number':
+        result = getCurrentCallNumber(data);
+        break;
+      case 'set_current_call_number':
+        result = setCurrentCallNumber(data);
+        break;
       default:
         result = { status: 'error', message: '未知的操作類型' };
     }
@@ -571,6 +578,34 @@ function setSystemStatus(data) {
   }
   PropertiesService.getScriptProperties().setProperty('SYSTEM_ACTIVE', data.active ? 'true' : 'false');
   return { status: 'success', active: data.active };
+}
+
+// ── 當前叫號 ─────────────────────────────────
+
+function getCurrentCallNumber(data) {
+  const number = PropertiesService.getScriptProperties().getProperty('CURRENT_CALL_NUMBER') || '';
+  return { status: 'success', number: number };
+}
+
+function setCurrentCallNumber(data) {
+  if (!validateAdminToken(data.token)) {
+    return { status: 'unauthorized', message: '登入逾時，請重新登入。' };
+  }
+
+  const raw = data.number === undefined || data.number === null ? '' : String(data.number);
+  if (raw && !/^\d{1,4}$/.test(raw)) {
+    return { status: 'error', message: '叫號號碼只能輸入 1 到 4 碼數字。' };
+  }
+
+  const number = raw ? raw.padStart(4, '0') : '';
+  const props = PropertiesService.getScriptProperties();
+  if (number) {
+    props.setProperty('CURRENT_CALL_NUMBER', number);
+  } else {
+    props.deleteProperty('CURRENT_CALL_NUMBER');
+  }
+
+  return { status: 'success', number: number };
 }
 
 // ── 手機號碼查詢（捐血前入口） ─────────────────

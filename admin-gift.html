@@ -45,6 +45,49 @@
     }
     .status-open  { color: #2E7D32; }
     .status-close { color: #C62828; }
+    #callNumberCard {
+      background: #E3F2FD;
+      border: 1px solid #BBDEFB;
+    }
+    #callNumberCard .system-toggle-label {
+      color: #0D47A1;
+    }
+    .call-number-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .call-number-actions .btn {
+      box-sizing: border-box;
+      min-height: 48px;
+      margin-top: 0;
+      padding: 12px 8px;
+      border: 2px solid #1565C0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+    .call-number-actions .btn-primary {
+      background: #1565C0;
+      color: #fff;
+    }
+    .call-number-actions .btn-primary:hover {
+      background: #0D47A1;
+    }
+    .call-number-actions .btn-outline {
+      color: #1565C0;
+      background: #fff;
+    }
+    .call-number-actions .btn-outline:hover {
+      background: #BBDEFB;
+    }
+    .call-number-message {
+      font-size: 0.85rem;
+      margin-top: 8px;
+      min-height: 1.2em;
+    }
   </style>
 </head>
 <body>
@@ -67,6 +110,20 @@
         <button class="tab-btn" id="btnClose" onclick="toggleSystem(false)" disabled>目前關閉</button>
       </div>
       <div class="system-status-text" id="systemStatusText">讀取中...</div>
+    </div>
+
+    <!-- 當前叫號 -->
+    <div class="system-toggle-card" id="callNumberCard">
+      <div class="system-toggle-label">當前叫號</div>
+      <input type="text" id="callNumberInput" class="form-control"
+             placeholder="例：0001" maxlength="4" inputmode="numeric"
+             oninput="this.value=this.value.replace(/\D/g,'')">
+      <div class="call-number-actions">
+        <button type="button" class="btn btn-outline" onclick="stepCallNumber(-1)">上一號</button>
+        <button type="button" class="btn btn-primary" onclick="saveCallNumber()">儲存</button>
+        <button type="button" class="btn btn-outline" onclick="stepCallNumber(1)">下一號</button>
+      </div>
+      <div class="call-number-message" id="callNumberMessage">讀取中...</div>
     </div>
 
     <!-- 搜尋卡片 -->
@@ -309,6 +366,72 @@
     }
 
     loadSystemStatus();
+
+    // ── 當前叫號 ──
+    async function loadCallNumber() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_current_call_number' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          document.getElementById('callNumberInput').value = data.number ? String(data.number).padStart(4, '0') : '';
+          setCallNumberMessage(data.number ? '目前叫號：' + String(data.number).padStart(4, '0') : '尚未設定叫號', false);
+        } else {
+          setCallNumberMessage(data.message || '讀取失敗', true);
+        }
+      } catch (err) {
+        setCallNumberMessage('讀取失敗', true);
+      }
+    }
+
+    function normalizeCallNumber(value) {
+      const digits = String(value || '').replace(/\D/g, '');
+      return digits ? digits.padStart(4, '0').slice(-4) : '';
+    }
+
+    function setCallNumberMessage(message, isError) {
+      const el = document.getElementById('callNumberMessage');
+      el.textContent = message;
+      el.style.color = isError ? '#C62828' : '#2E7D32';
+    }
+
+    function stepCallNumber(delta) {
+      const input = document.getElementById('callNumberInput');
+      const current = parseInt(input.value || '0', 10);
+      const next = Math.max(0, Math.min(9999, current + delta));
+      input.value = next > 0 ? String(next).padStart(4, '0') : '';
+    }
+
+    async function saveCallNumber() {
+      const input = document.getElementById('callNumberInput');
+      const number = normalizeCallNumber(input.value);
+      input.value = number;
+      setCallNumberMessage('儲存中...', false);
+
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set_current_call_number', token: token, number: number }),
+        });
+        const data = await res.json();
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('oavwfc2008-admin-login.html');
+          return;
+        }
+        if (data.status === 'success') {
+          setCallNumberMessage(number ? '已更新為：' + number : '已清除叫號', false);
+        } else {
+          setCallNumberMessage(data.message || '儲存失敗', true);
+        }
+      } catch (err) {
+        setCallNumberMessage('儲存失敗，請稍後再試', true);
+      }
+    }
+
+    loadCallNumber();
 
     const KNOWN_COMPANIES = [
       '仕興員工／仕興員工親友', '董事長親友/獅子會', '總經理(青商會/台灣應達)',
