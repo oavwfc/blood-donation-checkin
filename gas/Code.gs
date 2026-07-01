@@ -12,6 +12,7 @@
 // =============================================
 
 const SHEET_NAME = 'blood_donation';
+const CHECKIN_CLOSED_MESSAGE = '報到功能尚未開放，請於活動當天到場後再操作。';
 
 // ── 主要進入點 ──────────────────────────────
 
@@ -24,7 +25,8 @@ function doPost(e) {
     const adminActions = new Set([
       'admin_login', 'admin_lookup', 'admin_update',
       'update_gift', 'get_system_status', 'set_system_status',
-      'get_current_call_number', 'set_current_call_number'
+      'get_current_call_number', 'set_current_call_number',
+      'get_checkin_status', 'set_checkin_status'
     ]);
 
     if (!adminActions.has(action)) {
@@ -50,6 +52,8 @@ function doPost(e) {
       case 'admin_update':        result = adminUpdate(data);       break;
       case 'get_system_status':   result = getSystemStatus(data);   break;
       case 'set_system_status':   result = setSystemStatus(data);   break;
+      case 'get_checkin_status':  result = getCheckinStatus(data);  break;
+      case 'set_checkin_status':  result = setCheckinStatus(data);  break;
       case 'get_current_call_number':
         result = getCurrentCallNumber(data);
         break;
@@ -114,6 +118,14 @@ function formatSheetDateValue(value) {
     return formatDate(value);
   }
   return String(value);
+}
+
+function isCheckinActive() {
+  return PropertiesService.getScriptProperties().getProperty('CHECKIN_ACTIVE') === 'true';
+}
+
+function checkinClosedResponse() {
+  return { status: 'checkin_closed', message: CHECKIN_CLOSED_MESSAGE };
 }
 
 function generateCheckinNumber(sheet) {
@@ -229,6 +241,10 @@ function completeRegister(data) {
 // ── 報到（已報名） ───────────────────────────
 
 function checkin(data) {
+  if (!isCheckinActive()) {
+    return checkinClosedResponse();
+  }
+
   const sheet = getSheet();
   const rows  = sheet.getDataRange().getValues();
 
@@ -283,6 +299,10 @@ function checkin(data) {
 // ── 報到（未報名，現場直接新增） ─────────────
 
 function checkinNew(data) {
+  if (!isCheckinActive()) {
+    return checkinClosedResponse();
+  }
+
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
@@ -577,6 +597,20 @@ function setSystemStatus(data) {
     return { status: 'unauthorized', message: '登入逾時，請重新登入。' };
   }
   PropertiesService.getScriptProperties().setProperty('SYSTEM_ACTIVE', data.active ? 'true' : 'false');
+  return { status: 'success', active: data.active };
+}
+
+// ── 報到開關 ─────────────────────────────────
+
+function getCheckinStatus(data) {
+  return { status: 'success', active: isCheckinActive(), message: CHECKIN_CLOSED_MESSAGE };
+}
+
+function setCheckinStatus(data) {
+  if (!validateAdminToken(data.token)) {
+    return { status: 'unauthorized', message: '登入逾時，請重新登入。' };
+  }
+  PropertiesService.getScriptProperties().setProperty('CHECKIN_ACTIVE', data.active ? 'true' : 'false');
   return { status: 'success', active: data.active };
 }
 

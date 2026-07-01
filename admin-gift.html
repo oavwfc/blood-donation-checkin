@@ -37,14 +37,23 @@
       color: #333;
       margin-bottom: 10px;
     }
-    #btnOpen.active  { background: #2E7D32; color: #fff; border-color: #2E7D32; }
-    #btnClose.active { background: #C62828; color: #fff; border-color: #C62828; }
+    #btnOpen.active,
+    #btnCheckinOpen.active { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+    #btnClose.active,
+    #btnCheckinClose.active { background: #C62828; color: #fff; border-color: #C62828; }
     .system-status-text {
       font-size: 0.85rem;
       margin-top: 6px;
     }
     .status-open  { color: #2E7D32; }
     .status-close { color: #C62828; }
+    #checkinToggleCard {
+      background: #FFF8E1;
+      border: 1px solid #FFE082;
+    }
+    #checkinToggleCard .system-toggle-label {
+      color: #8A5A00;
+    }
     #callNumberCard {
       background: #E3F2FD;
       border: 1px solid #BBDEFB;
@@ -110,6 +119,16 @@
         <button class="tab-btn" id="btnClose" onclick="toggleSystem(false)" disabled>目前關閉</button>
       </div>
       <div class="system-status-text" id="systemStatusText">讀取中...</div>
+    </div>
+
+    <!-- 報到開關 -->
+    <div class="system-toggle-card" id="checkinToggleCard">
+      <div class="system-toggle-label">報到功能</div>
+      <div class="tabs" style="margin-bottom:8px;">
+        <button class="tab-btn" id="btnCheckinOpen"  onclick="toggleCheckin(true)"  disabled>開放報到</button>
+        <button class="tab-btn" id="btnCheckinClose" onclick="toggleCheckin(false)" disabled>關閉報到</button>
+      </div>
+      <div class="system-status-text" id="checkinStatusText">讀取中...</div>
     </div>
 
     <!-- 當前叫號 -->
@@ -366,6 +385,68 @@
     }
 
     loadSystemStatus();
+
+    // ── 報到開關 ──
+    let checkinActive = null;
+
+    async function loadCheckinStatus() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_checkin_status' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          updateCheckinToggleUI(data.active);
+        }
+      } catch (err) {
+        document.getElementById('checkinStatusText').textContent = '讀取失敗';
+      }
+    }
+
+    function updateCheckinToggleUI(active) {
+      checkinActive = active;
+      const btnOpen = document.getElementById('btnCheckinOpen');
+      const btnClose = document.getElementById('btnCheckinClose');
+      const statusEl = document.getElementById('checkinStatusText');
+      btnOpen.classList.toggle('active', active);
+      btnClose.classList.toggle('active', !active);
+      btnOpen.disabled = false;
+      btnClose.disabled = false;
+      if (active) {
+        statusEl.textContent = '✅ 報到開放中（民眾可取得序號）';
+        statusEl.className = 'system-status-text status-open';
+      } else {
+        statusEl.textContent = '🔴 報到未開放（僅可報名，不可取得序號）';
+        statusEl.className = 'system-status-text status-close';
+      }
+    }
+
+    async function toggleCheckin(newActive) {
+      if (checkinActive === newActive) return;
+      const previous = checkinActive;
+      updateCheckinToggleUI(newActive);
+
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set_checkin_status', token: token, active: newActive }),
+        });
+        const data = await res.json();
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('oavwfc2008-admin-login.html');
+          return;
+        }
+        if (data.status !== 'success') {
+          updateCheckinToggleUI(previous);
+        }
+      } catch (err) {
+        updateCheckinToggleUI(previous);
+      }
+    }
+
+    loadCheckinStatus();
 
     // ── 當前叫號 ──
     async function loadCallNumber() {

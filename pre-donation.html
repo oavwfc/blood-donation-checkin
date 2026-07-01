@@ -89,13 +89,18 @@
 
       <div id="checkinResult" class="result-box"></div>
 
+      <div id="checkinClosedBox" class="result-box warning" style="display:none;">
+        <div class="result-title">⚠️ 報到尚未開放</div>
+        <div class="result-detail">報到功能將於活動當天開放，請當天到場後再操作。</div>
+      </div>
+
       <button type="button" class="btn btn-green" id="completeRegisterBtn"
               onclick="completeRegister()">
         完成報名
       </button>
 
       <button type="button" class="btn btn-orange" id="checkinBtn"
-              onclick="doCheckin()">
+              onclick="doCheckin()" disabled>
         完成報到
       </button>
 
@@ -248,13 +253,18 @@
 
         <div id="registerResult" class="result-box"></div>
 
+        <div id="registerCheckinClosedBox" class="result-box warning" style="display:none;">
+          <div class="result-title">⚠️ 報到尚未開放</div>
+          <div class="result-detail">報到功能將於活動當天開放，請先完成報名，活動當天到場後再報到取得序號。</div>
+        </div>
+
         <button type="button" class="btn btn-primary" id="registerOnlyBtn"
                 onclick="submitRegister(false)">
           僅報名（尚未現場報到）
         </button>
 
         <button type="button" class="btn btn-orange" id="registerCheckinBtn"
-                onclick="submitRegister(true)">
+                onclick="submitRegister(true)" disabled>
           報名並現場報到（取得序號）
         </button>
 
@@ -270,6 +280,36 @@
   <script src="js/config.js"></script>
   <script>
     let foundData = null; // 存放 lookup_phone 查詢結果
+    let checkinActive = false;
+    const CHECKIN_CLOSED_MESSAGE = '報到功能將於活動當天開放，請當天到場後再操作。';
+
+    async function loadCheckinStatus() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_checkin_status' }),
+        });
+        const data = await res.json();
+        checkinActive = data.status === 'success' && data.active === true;
+      } catch (err) {
+        checkinActive = false;
+      }
+      applyCheckinAvailability();
+    }
+
+    function applyCheckinAvailability() {
+      const checkinBtn = document.getElementById('checkinBtn');
+      const registerCheckinBtn = document.getElementById('registerCheckinBtn');
+      const checkinClosedBox = document.getElementById('checkinClosedBox');
+      const registerCheckinClosedBox = document.getElementById('registerCheckinClosedBox');
+
+      if (checkinBtn) checkinBtn.disabled = !checkinActive;
+      if (registerCheckinBtn) registerCheckinBtn.disabled = !checkinActive;
+      if (checkinClosedBox) checkinClosedBox.style.display = checkinActive ? 'none' : 'block';
+      if (registerCheckinClosedBox) registerCheckinClosedBox.style.display = checkinActive ? 'none' : 'block';
+    }
+
+    loadCheckinStatus();
 
     // ── 重置回 Step 1 ──
     function resetToStep1() {
@@ -348,6 +388,7 @@
       document.getElementById('checkinResult').className = 'result-box';
       document.getElementById('checkinResult').innerHTML = '';
       document.getElementById('checkinBtn').style.display = 'block';
+      document.getElementById('checkinClosedBox').style.display = checkinActive ? 'none' : 'block';
 
       const isRegistered = !!String(data.報名時間 || '').trim();
       const isCheckedIn = data.報到 === 'Y';
@@ -370,7 +411,7 @@
         registeredBox.style.display = 'block';
         registeredBox.innerHTML = `
           <div class="result-title">✅ 您已完成報名</div>
-          <div class="result-detail">您已於 ${data.報名時間} 完成報名，可確認資料後進行報到。</div>
+          <div class="result-detail">您已於 ${data.報名時間} 完成報名，請於活動當天到場後再進行報到。</div>
         `;
       }
 
@@ -391,14 +432,17 @@
           <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${data.報到編號}</strong><br>請直接前往捐血。</div>
         `;
         document.getElementById('checkinBtn').style.display = 'none';
+        document.getElementById('checkinClosedBox').style.display = 'none';
       }
 
+      applyCheckinAvailability();
       document.getElementById('step2FoundCard').style.display = 'block';
     }
 
     // ── 顯示未報名表單 ──
     function showNotFoundCard(phone) {
       document.getElementById('r-phone').value = phone;
+      applyCheckinAvailability();
       document.getElementById('step2NotFoundCard').style.display = 'block';
     }
 
@@ -447,6 +491,12 @@
     // ── Step 2a：完成報到 ──
     async function doCheckin() {
       if (!foundData) return;
+      if (!checkinActive) {
+        const box = document.getElementById('checkinResult');
+        box.className = 'result-box warning';
+        box.innerHTML = `<div class="result-title">⚠️ 報到尚未開放</div><div class="result-detail">${CHECKIN_CLOSED_MESSAGE}</div>`;
+        return;
+      }
 
       const btn = document.getElementById('checkinBtn');
       btn.disabled = true;
@@ -486,6 +536,7 @@
       } finally {
         document.getElementById('checkinLoading').style.display = 'none';
         btn.disabled = false;
+        applyCheckinAvailability();
       }
     }
 
@@ -514,6 +565,12 @@
     // ── Step 2b：送出報名（withCheckin = true 時同時報到） ──
     async function submitRegister(withCheckin) {
       if (!validateRegister()) return;
+      if (withCheckin && !checkinActive) {
+        const box = document.getElementById('registerResult');
+        box.className = 'result-box warning';
+        box.innerHTML = `<div class="result-title">⚠️ 報到尚未開放</div><div class="result-detail">請先使用「僅報名」，活動當天到場後再報到取得序號。</div>`;
+        return;
+      }
 
       const phone   = document.getElementById('r-phone').value.trim();
       const company = getCompanyValue();
@@ -577,6 +634,7 @@
         document.getElementById('registerLoading').style.display = 'none';
         btnOnly.disabled    = false;
         btnCheckin.disabled = false;
+        applyCheckinAvailability();
       }
     }
 
