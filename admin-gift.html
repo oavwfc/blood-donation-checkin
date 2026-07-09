@@ -97,6 +97,31 @@
       margin-top: 8px;
       min-height: 1.2em;
     }
+    .radio-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1.5px solid #E0E0E0;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .radio-option input {
+      width: 18px;
+      height: 18px;
+      accent-color: #C62828;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -242,12 +267,12 @@
         </div>
 
         <div class="form-group">
-          <label for="f-cc">捐血CC數</label>
-          <select id="f-cc" class="form-control">
-            <option value="">請選擇</option>
-            <option value="250cc">250cc</option>
-            <option value="500cc">500cc</option>
-          </select>
+          <label>捐血CC數</label>
+          <div class="radio-group" role="radiogroup" aria-label="捐血CC數">
+            <label class="radio-option"><input type="radio" name="f-cc" value="">未選擇</label>
+            <label class="radio-option"><input type="radio" name="f-cc" value="250cc">250cc</label>
+            <label class="radio-option"><input type="radio" name="f-cc" value="500cc">500cc</label>
+          </div>
         </div>
 
         <div class="form-group">
@@ -263,30 +288,30 @@
         </div>
 
         <div class="form-group">
-          <label for="f-checkin">報到</label>
-          <select id="f-checkin" class="form-control">
-            <option value="">—（未報到）</option>
-            <option value="Y">Y（已報到）</option>
-          </select>
+          <label>報到</label>
+          <div class="radio-group" role="radiogroup" aria-label="報到">
+            <label class="radio-option"><input type="radio" name="f-checkin" value="">未報到</label>
+            <label class="radio-option"><input type="radio" name="f-checkin" value="Y">已報到</label>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="f-donated">捐血成功</label>
-          <select id="f-donated" class="form-control">
-            <option value="">—（未填寫）</option>
-            <option value="Y">Y（成功）</option>
-            <option value="N">N（未成功）</option>
-          </select>
+          <label>捐血成功</label>
+          <div class="radio-group" role="radiogroup" aria-label="捐血成功">
+            <label class="radio-option"><input type="radio" name="f-donated" value="">未填寫</label>
+            <label class="radio-option"><input type="radio" name="f-donated" value="Y">成功</label>
+            <label class="radio-option"><input type="radio" name="f-donated" value="N">未成功</label>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="f-gift">禮品領取</label>
-          <select id="f-gift" class="form-control">
-            <option value="">—（未填寫）</option>
-            <option value="Y">Y（已領取）</option>
-            <option value="N">N（之後補發）</option>
-            <option value="無符合資格">無符合資格</option>
-          </select>
+          <label>禮品領取</label>
+          <div class="radio-group" role="radiogroup" aria-label="禮品領取">
+            <label class="radio-option"><input type="radio" name="f-gift" value="">未填寫</label>
+            <label class="radio-option"><input type="radio" name="f-gift" value="Y">已領取</label>
+            <label class="radio-option"><input type="radio" name="f-gift" value="N">之後補發</label>
+            <label class="radio-option"><input type="radio" name="f-gift" value="無符合資格">無符合資格</label>
+          </div>
         </div>
 
         <div id="submitLoading" class="loading" style="display:none;">
@@ -609,12 +634,12 @@
       document.getElementById('f-regtime').value     = formatDateStr(data.報名時間);
       document.getElementById('f-name').value         = data.姓名     || '';
       document.getElementById('f-phone').value        = data.電話     || '';
-      document.getElementById('f-cc').value           = data.捐血CC數 || '';
       document.getElementById('f-checkintime').value  = formatDateStr(data.報到時間);
       document.getElementById('f-checkinnum').value   = data.報到編號 ? String(data.報到編號).padStart(4, '0') : '';
-      document.getElementById('f-checkin').value      = data.報到     || '';
-      document.getElementById('f-donated').value      = data.捐血成功 || '';
-      document.getElementById('f-gift').value         = data.禮品領取 || '';
+      setRadioValue('f-cc', data.捐血CC數);
+      setRadioValue('f-checkin', data.報到);
+      setRadioValue('f-donated', data.捐血成功);
+      setRadioValue('f-gift', data.禮品領取);
 
       // 公司行號（含「其他」判斷）
       const companyVal = data.公司行號 || '';
@@ -646,6 +671,19 @@
       return sel === '其他' ? document.getElementById('f-company-other').value.trim() : sel;
     }
 
+    function setRadioValue(name, value) {
+      const normalized = value || '';
+      const radios = document.querySelectorAll(`input[name="${name}"]`);
+      radios.forEach(function(radio) {
+        radio.checked = radio.value === normalized;
+      });
+    }
+
+    function getRadioValue(name) {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return checked ? checked.value : '';
+    }
+
     // ── 確認更新 ──
     document.getElementById('editForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -668,12 +706,12 @@
             報名時間: document.getElementById('f-regtime').value.trim(),
             公司行號: getFCompanyValue(),
             姓名:     document.getElementById('f-name').value.trim(),
-            捐血CC數: document.getElementById('f-cc').value,
+            捐血CC數: getRadioValue('f-cc'),
             報到時間: document.getElementById('f-checkintime').value.trim(),
             報到編號: checkinNum,
-            報到:     document.getElementById('f-checkin').value,
-            捐血成功: document.getElementById('f-donated').value,
-            禮品領取: document.getElementById('f-gift').value,
+            報到:     getRadioValue('f-checkin'),
+            捐血成功: getRadioValue('f-donated'),
+            禮品領取: getRadioValue('f-gift'),
           }),
         });
         const data = await res.json();
