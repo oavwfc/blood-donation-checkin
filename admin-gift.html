@@ -103,10 +103,13 @@
       gap: 8px;
       margin-top: 6px;
     }
+    .radio-group.two-columns {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .radio-option {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 14px;
       min-height: 44px;
       padding: 10px 12px;
       border: 1.5px solid #E0E0E0;
@@ -121,6 +124,7 @@
       height: 18px;
       accent-color: #C62828;
       flex-shrink: 0;
+      margin: 0;
     }
   </style>
 </head>
@@ -306,7 +310,7 @@
 
         <div class="form-group">
           <label>禮品領取</label>
-          <div class="radio-group" role="radiogroup" aria-label="禮品領取">
+          <div class="radio-group two-columns" role="radiogroup" aria-label="禮品領取">
             <label class="radio-option"><input type="radio" name="f-gift" value="">未填寫</label>
             <label class="radio-option"><input type="radio" name="f-gift" value="Y">已領取</label>
             <label class="radio-option"><input type="radio" name="f-gift" value="N">之後補發</label>
