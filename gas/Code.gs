@@ -117,6 +117,17 @@ function formatDate(date) {
   return `${yyyy}/${mm}/${dd}`;
 }
 
+function formatDateTime(date) {
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const hh   = String(d.getHours()).padStart(2, '0');
+  const min  = String(d.getMinutes()).padStart(2, '0');
+  const ss   = String(d.getSeconds()).padStart(2, '0');
+  return `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+}
+
 function formatSheetDateValue(value) {
   if (!value) return '';
   if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
@@ -329,7 +340,7 @@ function checkin(data) {
         }
 
         const checkinNum = buildNextCheckinNumber(sheet);
-        const now        = formatDate(new Date());
+        const now        = formatDateTime(new Date());
 
         sheet.getRange(rowNum, 6).setValue(now);                              // F 報到時間
         writeCheckinNumber(sheet, rowNum, checkinNum);                        // G 報到編號
@@ -372,7 +383,7 @@ function checkinNew(data) {
 
   try {
     const sheet      = getSheet();
-    const now        = formatDate(new Date());
+    const now        = formatDateTime(new Date());
     const checkinNum = buildNextCheckinNumber(sheet);
     const newRow     = sheet.getLastRow() + 1;
 
