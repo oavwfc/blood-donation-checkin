@@ -12,6 +12,8 @@
 // =============================================
 
 const SHEET_NAME = 'blood_donation';
+const LAST_CHECKIN_NUMBER_PROPERTY = 'LAST_CHECKIN_NUMBER';
+const CHECKIN_LOCK_WAIT_MS = 30000;
 const CHECKIN_CLOSED_MESSAGE = '報到功能尚未開放，請於活動當天到場後再操作。';
 
 // ── 主要進入點 ──────────────────────────────
@@ -20,6 +22,7 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
+    console.log('doPost action:', action);
 
     // 管理者相關 action 不受系統開關影響
     const adminActions = new Set([
@@ -101,6 +104,8 @@ function getSheet() {
     headerRange.setFontWeight('bold');
   }
 
+  sheet.getRange(2, 7, Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('0000');
+
   return sheet;
 }
 
@@ -128,7 +133,7 @@ function checkinClosedResponse() {
   return { status: 'checkin_closed', message: CHECKIN_CLOSED_MESSAGE };
 }
 
-function generateCheckinNumber(sheet) {
+function getMaxCheckinNumberFromSheet(sheet) {
   const data = sheet.getDataRange().getValues();
   let maxNum = 0;
 
@@ -140,7 +145,51 @@ function generateCheckinNumber(sheet) {
     }
   }
 
-  return String(maxNum + 1).padStart(4, '0');
+  return maxNum;
+}
+
+function buildNextCheckinNumber(sheet) {
+  const sheetMaxNum = getMaxCheckinNumberFromSheet(sheet);
+  const nextNum = sheetMaxNum + 1;
+
+  if (nextNum > 9999) {
+    throw new Error('報到編號已超過 9999，請聯絡系統管理員。');
+  }
+
+  return {
+    value: nextNum,
+    display: String(nextNum).padStart(4, '0')
+  };
+}
+
+function commitLastCheckinNumber(checkinNumber) {
+  PropertiesService.getScriptProperties()
+    .setProperty(LAST_CHECKIN_NUMBER_PROPERTY, String(checkinNumber.value));
+}
+
+function writeCheckinNumber(sheet, rowNum, checkinNumber) {
+  sheet.getRange(rowNum, 7).setNumberFormat('0000').setValue(checkinNumber.value);
+}
+
+function normalizeCheckinNumberColumn() {
+  const sheet = getSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const range = sheet.getRange(2, 7, lastRow - 1, 1);
+  const normalizedValues = range.getValues().map(function(row) {
+    const raw = row[0];
+    if (raw === '' || raw === null || raw === undefined) return [''];
+
+    const num = parseInt(raw, 10);
+    return isNaN(num) ? [raw] : [num];
+  });
+
+  range.setNumberFormat('0000').setValues(normalizedValues);
+
+  const maxNum = getMaxCheckinNumberFromSheet(sheet);
+  PropertiesService.getScriptProperties().setProperty(LAST_CHECKIN_NUMBER_PROPERTY, String(maxNum));
+  SpreadsheetApp.flush();
 }
 
 // ── 報名 ────────────────────────────────────
@@ -263,24 +312,35 @@ function checkin(data) {
 
       const lock = LockService.getScriptLock();
       try {
-        lock.waitLock(15000);
+        lock.waitLock(CHECKIN_LOCK_WAIT_MS);
       } catch (e) {
         return { status: 'error', message: '系統繁忙，請稍後再試。' };
       }
 
       try {
-        const checkinNum = generateCheckinNumber(sheet);
+        const rowNum = i + 1;
+        const latestRow = sheet.getRange(rowNum, 1, 1, 10).getValues()[0];
+        if (latestRow[7] === 'Y') {
+          return {
+            status: 'already_checkin',
+            message: `${latestRow[2]} 您已完成報到`,
+            報到編號: String(latestRow[6]).padStart(4, '0')
+          };
+        }
+
+        const checkinNum = buildNextCheckinNumber(sheet);
         const now        = formatDate(new Date());
-        const rowNum     = i + 1;
 
         sheet.getRange(rowNum, 6).setValue(now);                              // F 報到時間
-        sheet.getRange(rowNum, 7).setNumberFormat('@').setValue(checkinNum); // G 報到編號
+        writeCheckinNumber(sheet, rowNum, checkinNum);                        // G 報到編號
         sheet.getRange(rowNum, 8).setValue('Y');                             // H 報到
+        SpreadsheetApp.flush();
+        commitLastCheckinNumber(checkinNum);
 
         return {
           status: 'success',
           message: '報到成功！',
-          報到編號: checkinNum,
+          報到編號: checkinNum.display,
           姓名: rows[i][2],
           捐血CC數: rows[i][4]
         };
@@ -305,7 +365,7 @@ function checkinNew(data) {
 
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(15000);
+    lock.waitLock(CHECKIN_LOCK_WAIT_MS);
   } catch (e) {
     return { status: 'error', message: '系統繁忙，請稍後再試。' };
   }
@@ -313,20 +373,22 @@ function checkinNew(data) {
   try {
     const sheet      = getSheet();
     const now        = formatDate(new Date());
-    const checkinNum = generateCheckinNumber(sheet);
+    const checkinNum = buildNextCheckinNumber(sheet);
     const newRow     = sheet.getLastRow() + 1;
 
     sheet.getRange(newRow, 4).setNumberFormat('@'); // 電話欄先設文字格式
-    sheet.getRange(newRow, 7).setNumberFormat('@'); // 報到編號欄先設文字格式
+    sheet.getRange(newRow, 7).setNumberFormat('0000'); // 報到編號欄固定 4 碼顯示
     sheet.getRange(newRow, 1, 1, 10).setValues([[
       now, data.公司行號, data.姓名, String(data.電話),
-      data.捐血CC數, now, checkinNum, 'Y', '', ''
+      data.捐血CC數, now, checkinNum.value, 'Y', '', ''
     ]]);
+    SpreadsheetApp.flush();
+    commitLastCheckinNumber(checkinNum);
 
     return {
       status: 'success',
       message: '報到成功！',
-      報到編號: checkinNum,
+      報到編號: checkinNum.display,
       姓名: data.姓名,
       捐血CC數: data.捐血CC數
     };
@@ -569,7 +631,18 @@ function adminUpdate(data) {
       if (data.報到時間 !== undefined) sheet.getRange(rowNum, 6).setValue(data.報到時間);
       if (data.報到編號 !== undefined) {
         const newNum = data.報到編號 ? String(data.報到編號).padStart(4, '0') : '';
-        sheet.getRange(rowNum, 7).setNumberFormat('@').setValue(newNum);
+        const checkinNumberCell = sheet.getRange(rowNum, 7).setNumberFormat('0000');
+        if (newNum) {
+          checkinNumberCell.setValue(Number(newNum));
+          const props = PropertiesService.getScriptProperties();
+          const storedNum = parseInt(props.getProperty(LAST_CHECKIN_NUMBER_PROPERTY) || '0', 10) || 0;
+          const editedNum = parseInt(newNum, 10);
+          if (!isNaN(editedNum) && editedNum > storedNum) {
+            props.setProperty(LAST_CHECKIN_NUMBER_PROPERTY, String(editedNum));
+          }
+        } else {
+          checkinNumberCell.setValue('');
+        }
       }
       if (data.報到     !== undefined) sheet.getRange(rowNum, 8).setValue(data.報到);
       if (data.捐血成功 !== undefined) sheet.getRange(rowNum, 9).setValue(data.捐血成功);
