@@ -192,8 +192,9 @@
     <!-- 活動標題 -->
     <div class="system-toggle-card" id="eventTitleCard">
       <div class="system-toggle-label">活動標題（顯示於首頁）</div>
-      <input type="text" id="eventTitleInput" class="form-control"
-             placeholder="例：捐血日期: 115年11月18日 (三) 9:00~16:00" maxlength="100">
+      <textarea id="eventTitleInput" class="form-control" rows="3" maxlength="200"
+                style="resize:vertical; line-height:1.6;"
+                placeholder="例：捐血日期: 115年11月18日 (三) 9:00~16:00&#10;協辦單位: XXX（按 Enter 換行）"></textarea>
       <div class="event-title-actions">
         <button type="button" class="btn btn-outline" onclick="clearEventTitle()">清除</button>
         <button type="button" class="btn btn-primary" onclick="saveEventTitle()">儲存</button>
