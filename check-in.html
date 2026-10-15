@@ -149,6 +149,7 @@
   </main>
 
   <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
   <script>
     let checkinActive = false;
     const CHECKIN_CLOSED_MESSAGE = '報到功能將於活動當天開放，請當天到場後再操作。';
@@ -220,13 +221,13 @@
       let numHtml = '';
       if (checkinNum) {
         numHtml = `
-          <div class="checkin-number">${checkinNum}</div>
+          <div class="checkin-number">${escapeHtml(checkinNum)}</div>
           <div class="checkin-label">請記住您的報到編號，捐血後需使用</div>
         `;
       }
       box.innerHTML = `
         <div class="result-title">${icon} ${title}</div>
-        <div class="result-detail">${detail}</div>
+        <div class="result-detail">${escapeHtml(detail)}</div>
         ${numHtml}
       `;
     }

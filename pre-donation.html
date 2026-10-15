@@ -278,6 +278,7 @@
   </main>
 
   <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
   <script>
     let foundData = null; // 存放 lookup_phone 查詢結果
     let checkinActive = false;
@@ -398,12 +399,12 @@
       document.getElementById('foundInfo').innerHTML = `
         <div style="background:#FFF8E1; border:1.5px solid #FFE082; border-radius:8px; padding:10px 12px; margin-bottom:8px;">
           <span style="color:#8A5A00; font-size:0.85rem;">報名時間</span><br>
-          <strong style="color:#5D4000;">${data.報名時間 || '尚未完成報名'}</strong>
+          <strong style="color:#5D4000;">${escapeHtml(data.報名時間 || '尚未完成報名')}</strong>
         </div>
-        <div><span style="color:#757575; font-size:0.85rem;">公司行號</span><br><strong>${data.公司行號}</strong></div>
-        <div><span style="color:#757575; font-size:0.85rem;">姓名</span><br><strong>${data.姓名}</strong></div>
-        <div><span style="color:#757575; font-size:0.85rem;">手機號碼</span><br><strong>${data.電話}</strong></div>
-        <div><span style="color:#757575; font-size:0.85rem;">捐血CC數</span><br><strong>${data.捐血CC數}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">公司行號</span><br><strong>${escapeHtml(data.公司行號)}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">姓名</span><br><strong>${escapeHtml(data.姓名)}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">手機號碼</span><br><strong>${escapeHtml(data.電話)}</strong></div>
+        <div><span style="color:#757575; font-size:0.85rem;">捐血CC數</span><br><strong>${escapeHtml(data.捐血CC數)}</strong></div>
       `;
 
       if (isRegistered && !isCheckedIn) {
@@ -411,7 +412,7 @@
         registeredBox.style.display = 'block';
         registeredBox.innerHTML = `
           <div class="result-title">✅ 您已完成報名</div>
-          <div class="result-detail">您已於 ${data.報名時間} 完成報名，請於活動當天到場後再進行報到。</div>
+          <div class="result-detail">您已於 ${escapeHtml(data.報名時間)} 完成報名，請於活動當天到場後再進行報到。</div>
         `;
       }
 
@@ -429,7 +430,7 @@
         box.style.display = 'block';
         box.innerHTML = `
           <div class="result-title">⚠️ 您已完成報到</div>
-          <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${data.報到編號}</strong><br>請直接前往捐血。</div>
+          <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${escapeHtml(data.報到編號)}</strong><br>請直接前往捐血。</div>
         `;
         document.getElementById('checkinBtn').style.display = 'none';
         document.getElementById('checkinClosedBox').style.display = 'none';
@@ -472,11 +473,11 @@
           foundData.報名時間 = data.報名時間 || foundData.報名時間;
           const box = document.getElementById('checkinResult');
           box.className = 'result-box warning';
-          box.innerHTML = `<div class="result-title">⚠️ 已完成報名</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">⚠️ 已完成報名</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
         } else {
           const box = document.getElementById('checkinResult');
           box.className = 'result-box error';
-          box.innerHTML = `<div class="result-title">❌ 報名失敗</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">❌ 報名失敗</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
         }
       } catch (err) {
         const box = document.getElementById('checkinResult');
@@ -521,13 +522,13 @@
           box.style.display = 'block';
           box.innerHTML = `
             <div class="result-title">⚠️ 您已完成報到</div>
-            <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${data.報到編號}</strong></div>
+            <div class="result-detail">報到編號：<strong style="font-size:1.3rem; letter-spacing:0.1em;">${escapeHtml(data.報到編號)}</strong></div>
           `;
           btn.style.display = 'none';
         } else {
           const box = document.getElementById('checkinResult');
           box.className = 'result-box error';
-          box.innerHTML = `<div class="result-title">❌ 報到失敗</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">❌ 報到失敗</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
         }
       } catch (err) {
         const box = document.getElementById('checkinResult');
@@ -623,7 +624,7 @@
           } else if (data.status === 'duplicate') {
             const box = document.getElementById('registerResult');
             box.className = 'result-box warning';
-            box.innerHTML = `<div class="result-title">⚠️ 重複報名</div><div class="result-detail">${data.message}</div>`;
+            box.innerHTML = `<div class="result-title">⚠️ 重複報名</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
           } else {
             showRegisterError(data.message || '請稍後再試');
           }
@@ -641,7 +642,7 @@
     function showRegisterError(msg) {
       const box = document.getElementById('registerResult');
       box.className = 'result-box error';
-      box.innerHTML = `<div class="result-title">❌ 送出失敗</div><div class="result-detail">${msg}</div>`;
+      box.innerHTML = `<div class="result-title">❌ 送出失敗</div><div class="result-detail">${escapeHtml(msg)}</div>`;
     }
 
     // ── Step 3：修改資料 ──
@@ -745,7 +746,7 @@
         } else {
           const box = document.getElementById('editResult');
           box.className = 'result-box error';
-          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
         }
       } catch (err) {
         const box = document.getElementById('editResult');

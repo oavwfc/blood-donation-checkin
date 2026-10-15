@@ -50,6 +50,7 @@
   </main>
 
   <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
   <script>
     // 若已登入則直接跳轉
     if (sessionStorage.getItem('ADMIN_TOKEN')) {
@@ -87,7 +88,7 @@
         } else {
           const box = document.getElementById('loginResult');
           box.className = 'result-box error';
-          box.innerHTML = `<div class="result-title">❌ 登入失敗</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">❌ 登入失敗</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
         }
       } catch (err) {
         const box = document.getElementById('loginResult');

@@ -94,6 +94,7 @@
   </main>
 
   <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
   <script>
     const form       = document.getElementById('registerForm');
     const loadingBox = document.getElementById('loadingBox');
@@ -140,7 +141,7 @@
       const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
       resultBox.innerHTML = `
         <div class="result-title">${icon} ${title}</div>
-        <div class="result-detail">${detail}</div>
+        <div class="result-detail">${escapeHtml(detail)}</div>
       `;
     }
 

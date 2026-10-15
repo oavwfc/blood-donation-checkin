@@ -6,6 +6,7 @@
   <title>捐血系統</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
 </head>
 <body>
 
@@ -39,7 +40,7 @@
         <span>›</span>
       </a>
 
-      <a href="post-donation.html" class="nav-btn donation hidden">
+      <a href="post-donation.html" class="nav-btn donation hidden" id="postDonationLink">
         <span class="icon">🏅</span>
         <div class="info">
           <div class="label">捐血後填寫</div>
@@ -101,8 +102,24 @@
       }
     }
 
+    async function loadPostDonationStatus() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_post_donation_status' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.active === true) {
+          document.getElementById('postDonationLink').classList.remove('hidden');
+        }
+      } catch (err) {
+        // 讀取失敗時維持隱藏
+      }
+    }
+
     loadCurrentNumber();
     loadEventTitle();
+    loadPostDonationStatus();
   </script>
 </body>
 </html>

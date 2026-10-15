@@ -90,12 +90,13 @@
     </div>
   </main>
 
+  <script src="js/utils.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const type   = params.get('type');
-    const name   = params.get('name')   || '';
-    const number = params.get('number') || '';
-    const cc     = params.get('cc')     || '';
+    const name   = escapeHtml(params.get('name')   || '');
+    const number = escapeHtml(params.get('number') || '');
+    const cc     = escapeHtml(params.get('cc')     || '');
 
     const el = document.getElementById('successContent');
 

@@ -38,9 +38,11 @@
       margin-bottom: 10px;
     }
     #btnOpen.active,
-    #btnCheckinOpen.active { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+    #btnCheckinOpen.active,
+    #btnPostOpen.active { background: #2E7D32; color: #fff; border-color: #2E7D32; }
     #btnClose.active,
-    #btnCheckinClose.active { background: #C62828; color: #fff; border-color: #C62828; }
+    #btnCheckinClose.active,
+    #btnPostClose.active { background: #C62828; color: #fff; border-color: #C62828; }
     .system-status-text {
       font-size: 0.85rem;
       margin-top: 6px;
@@ -175,6 +177,16 @@
         <button class="tab-btn" id="btnCheckinClose" onclick="toggleCheckin(false)" disabled>關閉報到</button>
       </div>
       <div class="system-status-text" id="checkinStatusText">讀取中...</div>
+    </div>
+
+    <!-- 捐血後填寫開關 -->
+    <div class="system-toggle-card" id="postDonationToggleCard">
+      <div class="system-toggle-label">捐血後填寫</div>
+      <div class="tabs" style="margin-bottom:8px;">
+        <button class="tab-btn" id="btnPostOpen"  onclick="togglePostDonation(true)"  disabled>開放填寫</button>
+        <button class="tab-btn" id="btnPostClose" onclick="togglePostDonation(false)" disabled>關閉填寫</button>
+      </div>
+      <div class="system-status-text" id="postDonationStatusText">讀取中...</div>
     </div>
 
     <!-- 活動標題 -->
@@ -369,6 +381,7 @@
   </main>
 
   <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
   <script>
     const token = sessionStorage.getItem('ADMIN_TOKEN');
     if (!token) {
@@ -505,6 +518,68 @@
     }
 
     loadCheckinStatus();
+
+    // ── 捐血後填寫開關 ──
+    let postDonationActive = null;
+
+    async function loadPostDonationStatus() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_post_donation_status' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          updatePostDonationToggleUI(data.active);
+        }
+      } catch (err) {
+        document.getElementById('postDonationStatusText').textContent = '讀取失敗';
+      }
+    }
+
+    function updatePostDonationToggleUI(active) {
+      postDonationActive = active;
+      const btnOpen = document.getElementById('btnPostOpen');
+      const btnClose = document.getElementById('btnPostClose');
+      const statusEl = document.getElementById('postDonationStatusText');
+      btnOpen.classList.toggle('active', active);
+      btnClose.classList.toggle('active', !active);
+      btnOpen.disabled = false;
+      btnClose.disabled = false;
+      if (active) {
+        statusEl.textContent = '✅ 開放中（首頁顯示入口，民眾可填寫捐血結果）';
+        statusEl.className = 'system-status-text status-open';
+      } else {
+        statusEl.textContent = '🔴 已關閉（首頁不顯示入口，無法填寫）';
+        statusEl.className = 'system-status-text status-close';
+      }
+    }
+
+    async function togglePostDonation(newActive) {
+      if (postDonationActive === newActive) return;
+      const previous = postDonationActive;
+      updatePostDonationToggleUI(newActive);
+
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set_post_donation_status', token: token, active: newActive }),
+        });
+        const data = await res.json();
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('oavwfc2008-admin-login.html');
+          return;
+        }
+        if (data.status !== 'success') {
+          updatePostDonationToggleUI(previous);
+        }
+      } catch (err) {
+        updatePostDonationToggleUI(previous);
+      }
+    }
+
+    loadPostDonationStatus();
 
     // ── 活動標題 ──
     function setEventTitleMessage(message, isError) {
@@ -704,7 +779,7 @@
         } else {
           const box = document.getElementById('searchError');
           box.className = 'result-box error';
-          box.innerHTML = `<div class="result-title">❌ 查無資料</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">❌ 查無資料</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
         }
       } catch (err) {
         const box = document.getElementById('searchError');
@@ -820,7 +895,7 @@
           box.innerHTML = '<div class="result-title">✅ 更新成功</div><div class="result-detail">資料已更新至 Google Sheet。</div>';
         } else {
           box.className = 'result-box error';
-          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${data.message}</div>`;
+          box.innerHTML = `<div class="result-title">❌ 更新失敗</div><div class="result-detail">${escapeHtml(data.message)}</div>`;
           btn.disabled = false;
         }
       } catch (err) {
