@@ -17,13 +17,15 @@
   <main class="container">
 
     <div class="home-banner">
-      <img src="oavwfc.png" alt="OAVWFC" class="banner-logo">
+      <img src="oav-logo.png" alt="仕興機械" class="banner-logo">
+      <div class="event-title hidden" id="eventTitle"></div>
       <p>感謝您的愛心，請依流程完成報名與報到</p>
     </div>
 
     <section class="current-number-card" aria-live="polite">
       <div class="current-number-label">當前號碼</div>
       <div class="current-number-value" id="currentNumber">----</div>
+      <div class="waiting-range hidden" id="waitingRange"></div>
       <div class="current-number-note">請重新整理以確認目前叫號</div>
     </section>
 
@@ -50,6 +52,21 @@
   </main>
 
   <script>
+    const WAITING_RANGE_SIZE = 5; // 當前號碼之後幾號請到現場等候
+
+    function pad4(num) {
+      return String(num).padStart(4, '0');
+    }
+
+    function showWaitingRange(current) {
+      const el = document.getElementById('waitingRange');
+      const start = current + 1;
+      const end = Math.min(current + WAITING_RANGE_SIZE, 9999);
+      if (start > 9999) return;
+      el.textContent = pad4(start) + ' ~ ' + pad4(end) + ' 請到現場等候';
+      el.classList.remove('hidden');
+    }
+
     async function loadCurrentNumber() {
       try {
         const res = await fetch(CONFIG.GAS_URL, {
@@ -58,14 +75,34 @@
         });
         const data = await res.json();
         if (data.status === 'success' && data.number) {
-          document.getElementById('currentNumber').textContent = String(data.number).padStart(4, '0');
+          document.getElementById('currentNumber').textContent = pad4(data.number);
+          const current = parseInt(data.number, 10);
+          if (!isNaN(current)) showWaitingRange(current);
         }
       } catch (err) {
         document.getElementById('currentNumber').textContent = '----';
       }
     }
 
+    async function loadEventTitle() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_event_title' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.title) {
+          const el = document.getElementById('eventTitle');
+          el.textContent = data.title;
+          el.classList.remove('hidden');
+        }
+      } catch (err) {
+        // 讀取失敗時不顯示標題
+      }
+    }
+
     loadCurrentNumber();
+    loadEventTitle();
   </script>
 </body>
 </html>

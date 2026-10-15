@@ -1,0 +1,18 @@
+# 只發布 GitHub Pages 網站需要的前端檔案
+
+# 後端（貼在 Google Apps Script 執行）
+gas/
+
+# 說明文件
+*.md
+
+# 未使用的圖片與原始素材
+photo/
+oavwfc.png
+OAV1.png
+
+# 本機工具設定
+.claude/
+.agents/
+.codex/
+.vscode/

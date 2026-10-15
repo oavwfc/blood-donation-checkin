@@ -451,6 +451,15 @@ select.form-control {
   margin-right: auto;
 }
 
+.home-banner .event-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--red);
+  line-height: 1.5;
+  margin: 4px 0 8px;
+  word-break: break-word;
+}
+
 .home-banner p { font-size: 0.9rem; color: var(--gray-600); margin-top: 4px; }
 
 .hidden {
@@ -479,6 +488,19 @@ select.form-control {
   font-weight: 900;
   line-height: 1;
   letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.waiting-range {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: #FFF8E1;
+  border: 1px solid #FFE082;
+  border-radius: 999px;
+  color: #8A5A00;
+  font-size: 1rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 

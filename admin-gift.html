@@ -92,6 +92,23 @@
     .call-number-actions .btn-outline:hover {
       background: #BBDEFB;
     }
+    #eventTitleCard {
+      background: #FCE4EC;
+      border: 1px solid #F8BBD0;
+    }
+    #eventTitleCard .system-toggle-label {
+      color: #AD1457;
+    }
+    .event-title-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .event-title-actions .btn {
+      margin-top: 0;
+      min-height: 48px;
+    }
     .call-number-message {
       font-size: 0.85rem;
       margin-top: 8px;
@@ -158,6 +175,18 @@
         <button class="tab-btn" id="btnCheckinClose" onclick="toggleCheckin(false)" disabled>關閉報到</button>
       </div>
       <div class="system-status-text" id="checkinStatusText">讀取中...</div>
+    </div>
+
+    <!-- 活動標題 -->
+    <div class="system-toggle-card" id="eventTitleCard">
+      <div class="system-toggle-label">活動標題（顯示於首頁）</div>
+      <input type="text" id="eventTitleInput" class="form-control"
+             placeholder="例：捐血日期: 115年11月18日 (三) 9:00~16:00" maxlength="100">
+      <div class="event-title-actions">
+        <button type="button" class="btn btn-outline" onclick="clearEventTitle()">清除</button>
+        <button type="button" class="btn btn-primary" onclick="saveEventTitle()">儲存</button>
+      </div>
+      <div class="call-number-message" id="eventTitleMessage">讀取中...</div>
     </div>
 
     <!-- 當前叫號 -->
@@ -476,6 +505,65 @@
     }
 
     loadCheckinStatus();
+
+    // ── 活動標題 ──
+    function setEventTitleMessage(message, isError) {
+      const el = document.getElementById('eventTitleMessage');
+      el.textContent = message;
+      el.style.color = isError ? '#C62828' : '#2E7D32';
+    }
+
+    async function loadEventTitle() {
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_event_title' }),
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          document.getElementById('eventTitleInput').value = data.title || '';
+          setEventTitleMessage(data.title ? '目前標題已設定' : '尚未設定標題', false);
+        } else {
+          setEventTitleMessage(data.message || '讀取失敗', true);
+        }
+      } catch (err) {
+        setEventTitleMessage('讀取失敗', true);
+      }
+    }
+
+    async function saveEventTitle() {
+      const input = document.getElementById('eventTitleInput');
+      const title = input.value.trim();
+      input.value = title;
+      setEventTitleMessage('儲存中...', false);
+
+      try {
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'set_event_title', token: token, title: title }),
+        });
+        const data = await res.json();
+        if (data.status === 'unauthorized') {
+          sessionStorage.removeItem('ADMIN_TOKEN');
+          window.location.replace('oavwfc2008-admin-login.html');
+          return;
+        }
+        if (data.status === 'success') {
+          setEventTitleMessage(title ? '已更新標題' : '已清除標題', false);
+        } else {
+          setEventTitleMessage(data.message || '儲存失敗', true);
+        }
+      } catch (err) {
+        setEventTitleMessage('儲存失敗，請稍後再試', true);
+      }
+    }
+
+    function clearEventTitle() {
+      document.getElementById('eventTitleInput').value = '';
+      saveEventTitle();
+    }
+
+    loadEventTitle();
 
     // ── 當前叫號 ──
     async function loadCallNumber() {
